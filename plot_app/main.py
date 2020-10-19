@@ -229,10 +229,11 @@ else:
 
             link_to_3d_page = '3d?log='+log_id
             link_to_pid_analysis_page = '?plots=pid_analysis&log='+log_id
+            link_to_thiel_analysis_page = '?plots=thiel_analysis&log='+log_id
 
             try:
                 plots = generate_plots(ulog, px4_ulog, db_data, vehicle_data,
-                                       link_to_3d_page, link_to_pid_analysis_page)
+                                       link_to_3d_page, link_to_pid_analysis_page, link_to_thiel_analysis_page)
 
                 title = 'Flight Review - '+px4_ulog.get_mav_type()
 
