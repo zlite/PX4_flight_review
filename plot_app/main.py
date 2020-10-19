@@ -18,6 +18,7 @@ from colors import HTML_color_to_RGB
 from db_entry import *
 from configured_plots import generate_plots
 from pid_analysis_plots import get_pid_analysis_plots
+from thiel_analysis_plots import get_thiel_analysis_plots
 from statistics_plots import StatisticsPlots
 
 #pylint: disable=invalid-name, redefined-outer-name
@@ -188,7 +189,23 @@ else:
             plots_args = GET_arguments['plots']
             if len(plots_args) == 1:
                 plots_page = str(plots_args[0], 'utf-8')
-        if plots_page == 'pid_analysis':
+        if plots_page == 'thiel_analysis':
+            print("Returned thiel analysis")
+            try:
+                link_to_main_plots = '?log='+log_id
+                plots = get_thiel_analysis_plots(ulog, px4_ulog, db_data,
+                                               link_to_main_plots)
+                title = 'Thiel Review - '+px4_ulog.get_mav_type()
+
+            except Exception as error:
+                # catch all errors to avoid showing a blank page. Note that if we
+                # get here, there's a bug somewhere that needs to be fixed!
+                traceback.print_exc()
+                error_message = "There's a problem with Thiel"
+                print(error_message)
+                title, error_message, plots = show_exception_page()
+        elif plots_page == 'pid_analysis':
+            print("Returned PID analysis")
             try:
                 link_to_main_plots = '?log='+log_id
                 plots = get_pid_analysis_plots(ulog, px4_ulog, db_data,
@@ -201,7 +218,6 @@ else:
                 # get here, there's a bug somewhere that needs to be fixed!
                 traceback.print_exc()
                 title, error_message, plots = show_exception_page()
-
         else:
             # template variables
             curdoc().template_variables['cur_err_ids'] = db_data.error_labels
