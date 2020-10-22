@@ -219,6 +219,7 @@ else:
                 traceback.print_exc()
                 title, error_message, plots = show_exception_page()
         else:
+            print("For some reason we got to the else on line 221")
             # template variables
             curdoc().template_variables['cur_err_ids'] = db_data.error_labels
             curdoc().template_variables['mapbox_api_access_token'] = get_mapbox_api_access_token()
