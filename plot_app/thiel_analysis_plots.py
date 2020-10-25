@@ -90,7 +90,7 @@ This page shows the correspondance between a simulated and a real flight log.
     x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
 
 
-    # exchange all DataPlot's with the bokeh_plot and handle parameter changes
+    # exchange all DataPlots with the bokeh_plot
 
     jinja_plot_data = []
     for i in range(len(plots)):
