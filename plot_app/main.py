@@ -193,7 +193,7 @@ else:
             print("Returned thiel analysis")
             try:
                 link_to_main_plots = '?log='+log_id
-                plots = get_thiel_analysis_plots(ulog, px4_ulog, db_data,
+                plots = get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data,
                                                link_to_main_plots)
                 title = 'Thiel Review - '+px4_ulog.get_mav_type()
 
@@ -219,7 +219,6 @@ else:
                 traceback.print_exc()
                 title, error_message, plots = show_exception_page()
         else:
-            print("For some reason we got to the else on line 221")
             # template variables
             curdoc().template_variables['cur_err_ids'] = db_data.error_labels
             curdoc().template_variables['mapbox_api_access_token'] = get_mapbox_api_access_token()
