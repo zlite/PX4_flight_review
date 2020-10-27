@@ -24,6 +24,7 @@ from tornado.web import StaticFileHandler
 from tornado.web import RedirectHandler
 from tornado_handlers.download import DownloadHandler
 from tornado_handlers.upload import UploadHandler
+from tornado_handlers.thiel import ThielHandler
 from tornado_handlers.browse import BrowseHandler, BrowseDataRetrievalHandler
 from tornado_handlers.edit_entry import EditEntryHandler
 from tornado_handlers.db_info_json import DBInfoHandler
@@ -168,6 +169,7 @@ set_log_id_is_filename(show_ulog_file)
 extra_patterns = [
     (r'/upload', UploadHandler),
     (r'/browse', BrowseHandler),
+    (r'/thiel', ThielHandler),
     (r'/browse_data_retrieval', BrowseDataRetrievalHandler),
     (r'/3d', ThreeDHandler),
     (r'/radio_controller', RadioControllerHandler),
@@ -184,50 +186,33 @@ extra_patterns = [
 
 server = None
 custom_port = 5006
-if not show_thiel:
-    while server is None:
-        try:
-            server = Server(applications, extra_patterns=extra_patterns, **server_kwargs)
-        except OSError as e:
-            # if we get a port bind error and running locally with '-f',
-            # automatically select another port (useful for opening multiple logs)
-            if e.errno == errno.EADDRINUSE and show_ulog_file:
-                custom_port += 1
-                server_kwargs['port'] = custom_port
-            else:
-                raise
+while server is None:
+    try:
+        server = Server(applications, extra_patterns=extra_patterns, **server_kwargs)
+    except OSError as e:
+        # if we get a port bind error and running locally with '-f',
+        # automatically select another port (useful for opening multiple logs)
+        if e.errno == errno.EADDRINUSE and show_ulog_file:
+            custom_port += 1
+            server_kwargs['port'] = custom_port
+        else:
+            raise
 
-if show_thiel:
-    print("showing Thiel stuff")
-    while server is None:
-        try:
-            server = Server({'/': thiel.startserver})
-        except OSError as e:
-            # if we get a port bind error and running locally with '-f',
-            # automatically select another port (useful for opening multiple logs)
-            if e.errno == errno.EADDRINUSE and show_ulog_file:
-                custom_port += 1
-                server_kwargs['port'] = custom_port
-            else:
-                raise
+    # while server is None:
+    #     try:
+    #         server = Server({'/': thiel.startserver})
+    #     except OSError as e:
+    #         # if we get a port bind error and running locally with '-f',
+    #         # automatically select another port (useful for opening multiple logs)
+    #         if e.errno == errno.EADDRINUSE and show_ulog_file:
+    #             custom_port += 1
+    #             server_kwargs['port'] = custom_port
+    #         else:
+    #             raise
 
 
 
-#  # we have to defer opening in browser until we start up the server
-#     def show_callback():
-#         """ callback to open a browser window after server is fully initialized"""
-#         if show_ulog_file:
-#             if show_3d_page:
-#                 server.show('/3d?log='+ulog_file)
-#             elif show_pid_analysis_page:
-#                 server.show('/plot_app2?plots=pid_analysis&log='+ulog_file)
-#             else:
-#                 server.show('/plot_app2?log='+ulog_file)
-#         else:
-#             server.show('/upload')
-#     server.io_loop.add_callback(show_callback)
-
-if args.show and not show_thiel:
+if args.show:
     # we have to defer opening in browser until we start up the server
     def show_callback():
         """ callback to open a browser window after server is fully initialized"""
@@ -238,6 +223,9 @@ if args.show and not show_thiel:
                 server.show('/plot_app?plots=pid_analysis&log='+ulog_file)
             else:
                 server.show('/plot_app?log='+ulog_file)
+        elif show_thiel:
+                print("showing Thiel stuff")
+                server.show('/thiel')
         else:
             server.show('/upload')
     server.io_loop.add_callback(show_callback)

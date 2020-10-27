@@ -17,6 +17,7 @@ from bokeh.models import Range1d
 from bokeh.server.server import Server
 from bokeh.themes import Theme
 from bokeh.application.handlers import DirectoryHandler
+from bokeh.models import Div
 
 
 import time
@@ -239,7 +240,8 @@ def startserver(doc):
     file_input2.on_change('value', upload_new_data_real)
 
     intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
-    sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
+    sim_upload_text = Div(text="""Upload a simulator datalog: <a href="/tornado_handlers/browse">
+this script</a>""",width=500, height=15)
     real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
     #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
