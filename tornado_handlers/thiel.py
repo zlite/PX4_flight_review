@@ -395,194 +395,56 @@ class ThielHandler(TornadoRequestHandlerBase):
         """ POST request callback """
         if self.multipart_streamer:
             try:
-                self.multipart_streamer.data_complete()
-                form_data = self.multipart_streamer.get_values(
-                    ['description', 'email',
-                     'allowForAnalysis', 'obfuscated', 'source', 'type',
-                     'feedback', 'windSpeed', 'rating', 'videoUrl', 'public',
-                     'vehicleName'])
-                description = escape(form_data['description'].decode("utf-8"))
-                email = form_data['email'].decode("utf-8")
-                upload_type = 'personal'
-                if 'type' in form_data:
-                    upload_type = form_data['type'].decode("utf-8")
-                source = 'webui'
-                title = '' # may be used in future...
-                if 'source' in form_data:
-                    source = form_data['source'].decode("utf-8")
-                obfuscated = 0
-                if 'obfuscated' in form_data:
-                    if form_data['obfuscated'].decode("utf-8") == 'true':
-                        obfuscated = 1
-                allow_for_analysis = 0
-                if 'allowForAnalysis' in form_data:
-                    if form_data['allowForAnalysis'].decode("utf-8") == 'true':
-                        allow_for_analysis = 1
-                feedback = ''
-                if 'feedback' in form_data:
-                    feedback = escape(form_data['feedback'].decode("utf-8"))
-                wind_speed = -1
-                rating = ''
-                stored_email = ''
-                video_url = ''
-                is_public = 0
-                vehicle_name = ''
-                error_labels = ''
+                file_input = FileInput(accept=".ulg, .csv")
+                file_input.on_change('value', upload_new_data_sim)
+                file_input2 = FileInput(accept=".ulg, .csv")
+                file_input2.on_change('value', upload_new_data_real)
 
-                if upload_type == 'flightreport':
-                    try:
-                        wind_speed = int(escape(form_data['windSpeed'].decode("utf-8")))
-                    except ValueError:
-                        wind_speed = -1
-                    rating = escape(form_data['rating'].decode("utf-8"))
-                    if rating == 'notset': rating = ''
-                    stored_email = email
-                    # get video url & check if valid
-                    video_url = escape(form_data['videoUrl'].decode("utf-8"), quote=True)
-                    if not validate_url(video_url):
-                        video_url = ''
-                    if 'vehicleName' in form_data:
-                        vehicle_name = escape(form_data['vehicleName'].decode("utf-8"))
+                curdoc().template_variables['title_html'] = get_heading_html(
+                ulog, px4_ulog, db_data, None, [('Open Main Plots', link_to_main_plots)],
+                'PID Analysis') + page_intro
 
-                    # always allow for statistical analysis
-                    allow_for_analysis = 1
-                    if 'public' in form_data:
-                        if form_data['public'].decode("utf-8") == 'true':
-                            is_public = 1
+                intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
+                sim_upload_text = Div(text="""Upload a simulator datalog: <a href="/tornado_handlers/browse">
+            this script</a>""",width=500, height=15)
+                real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
+                #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
-                file_obj = self.multipart_streamer.get_parts_by_name('filearg')[0]
-                upload_file_name = file_obj.get_filename()
+                sim_reverse_button = RadioButtonGroup(
+                        labels=["Sim Default", "Reversed"], active=0)
+                sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
+                real_reverse_button = RadioButtonGroup(
+                        labels=["Real Default", "Reversed"], active=0)
+                real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
-                while True:
-                    log_id = str(uuid.uuid4())
-                    new_file_name = get_log_filename(log_id)
-                    if not os.path.exists(new_file_name):
-                        break
-
-                # read file header & check if really an ULog file
-                header_len = len(ULog.HEADER_BYTES)
-                if (file_obj.get_payload_partial(header_len) !=
-                        ULog.HEADER_BYTES):
-                    if upload_file_name[-7:].lower() == '.px4log':
-                        raise CustomHTTPError(
-                            400,
-                            'Invalid File. This seems to be a px4log file. '
-                            'Upload it to <a href="http://logs.uaventure.com" '
-                            'target="_blank">logs.uaventure.com</a>.')
-                    raise CustomHTTPError(400, 'Invalid File')
-
-                print('Moving uploaded file to', new_file_name)
-                file_obj.move(new_file_name)
-
-                if obfuscated == 1:
-                    # TODO: randomize gps data, ...
-                    pass
-
-                # generate a token: secure random string (url-safe)
-                token = str(binascii.hexlify(os.urandom(16)), 'ascii')
-
-                # Load the ulog file but only if not uploaded via CI.
-                # Then we open the DB connection.
-                ulog = None
-                if source != 'CI':
-                    ulog_file_name = get_log_filename(log_id)
-                    ulog = load_ulog_file(ulog_file_name)
+                simsource_static.selected.on_change('indices', simselection_change)
 
 
-                # put additional data into a DB
-                con = sqlite3.connect(get_db_filename())
-                cur = con.cursor()
-                cur.execute(
-                    'insert into Logs (Id, Title, Description, '
-                    'OriginalFilename, Date, AllowForAnalysis, Obfuscated, '
-                    'Source, Email, WindSpeed, Rating, Feedback, Type, '
-                    'videoUrl, ErrorLabels, Public, Token) values '
-                    '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    [log_id, title, description, upload_file_name,
-                     datetime.datetime.now(), allow_for_analysis,
-                     obfuscated, source, stored_email, wind_speed, rating,
-                     feedback, upload_type, video_url, error_labels, is_public, token])
+                # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
+                #ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
+                #ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
 
-                if ulog is not None:
-                    vehicle_data = update_vehicle_db_entry(cur, ulog, log_id, vehicle_name)
-                    vehicle_name = vehicle_data.name
+                ts1.x_range.on_change('end', lambda attr, old, new: change_sim_scale(ts1.x_range.start))
+                ts2.x_range.on_change('end', lambda attr, old, new: change_real_scale(ts2.x_range.start))
 
-                con.commit()
+                # set up layout
+                widgets = column(datatype,stats)
+                sim_button = column(sim_reverse_button)
+                real_button = column(real_reverse_button)
+                main_row = row(widgets)
+                series = column(ts1, sim_button, ts2, real_button)
+                layout = column(main_row, series)
 
-                url = '/plot_app?log='+log_id
-                full_plot_url = get_http_protocol()+'://'+get_domain_name()+url
-                print(full_plot_url)
+                # initialize
+                update()
+                doc.add_root(intro_text)
 
-                delete_url = get_http_protocol()+'://'+get_domain_name()+ \
-                    '/edit_entry?action=delete&log='+log_id+'&token='+token
-
-                # information for the notification email
-                info = {}
-                info['description'] = description
-                info['feedback'] = feedback
-                info['upload_filename'] = upload_file_name
-                info['type'] = ''
-                info['airframe'] = ''
-                info['hardware'] = ''
-                info['uuid'] = ''
-                info['software'] = ''
-                info['rating'] = rating
-                if len(vehicle_name) > 0:
-                    info['vehicle_name'] = vehicle_name
-
-                if ulog is not None:
-                    px4_ulog = PX4ULog(ulog)
-                    info['type'] = px4_ulog.get_mav_type()
-                    airframe_name_tuple = get_airframe_name(ulog)
-                    if airframe_name_tuple is not None:
-                        airframe_name, airframe_id = airframe_name_tuple
-                        if len(airframe_name) == 0:
-                            info['airframe'] = airframe_id
-                        else:
-                            info['airframe'] = airframe_name
-                    sys_hardware = ''
-                    if 'ver_hw' in ulog.msg_info_dict:
-                        sys_hardware = escape(ulog.msg_info_dict['ver_hw'])
-                        info['hardware'] = sys_hardware
-                    if 'sys_uuid' in ulog.msg_info_dict and sys_hardware != 'SITL':
-                        info['uuid'] = escape(ulog.msg_info_dict['sys_uuid'])
-                    branch_info = ''
-                    if 'ver_sw_branch' in ulog.msg_info_dict:
-                        branch_info = ' (branch: '+ulog.msg_info_dict['ver_sw_branch']+')'
-                    if 'ver_sw' in ulog.msg_info_dict:
-                        ver_sw = escape(ulog.msg_info_dict['ver_sw'])
-                        info['software'] = ver_sw + branch_info
-
-
-                if upload_type == 'flightreport' and is_public and source != 'CI':
-                    destinations = set(email_notifications_config['public_flightreport'])
-                    if rating in ['unsatisfactory', 'crash_sw_hw', 'crash_pilot']:
-                        destinations = destinations | \
-                            set(email_notifications_config['public_flightreport_bad'])
-                    send_flightreport_email(
-                        list(destinations),
-                        full_plot_url,
-                        DBData.rating_str_static(rating),
-                        DBData.wind_speed_str_static(wind_speed), delete_url,
-                        stored_email, info)
-
-                    # also generate the additional DB entry
-                    # (we may have the log already loaded in 'ulog', however the
-                    # lru cache will make it very quick to load it again)
-                    generate_db_data_from_log_file(log_id, con)
-                    # also generate the preview image
-                    IOLoop.instance().add_callback(generate_overview_img_from_id, log_id)
-
-                con.commit()
-                cur.close()
-                con.close()
-
-                # send notification emails
-                send_notification_email(email, full_plot_url, delete_url, info)
-
-                # do not redirect for QGC
-                if source != 'QGroundControl':
-                    self.redirect(url)
+                doc.add_root(sim_upload_text)
+                doc.add_root(file_input)
+                doc.add_root(real_upload_text)
+                doc.add_root(file_input2)
+                doc.add_root(layout)
+                doc.title = "Flight data"
 
             except CustomHTTPError:
                 raise

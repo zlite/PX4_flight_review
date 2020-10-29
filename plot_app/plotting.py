@@ -9,7 +9,7 @@ from bokeh.models import (
     Grid, Legend, Plot, BoxAnnotation, Span, CustomJS, Rect, Circle, Line,
     HoverTool, BoxZoomTool, PanTool, WheelZoomTool, ResetTool, SaveTool,
     WMTSTileSource, GMapPlot, GMapOptions,
-    LabelSet, Label, ColorBar, LinearColorMapper, BasicTicker, PrintfTickFormatter
+    LabelSet, Label, ColorBar, LinearColorMapper, BasicTicker, PrintfTickFormatter,PreText, Select
     )
 from bokeh.palettes import viridis
 from bokeh.models.widgets import DataTable, DateFormatter, TableColumn
@@ -92,6 +92,11 @@ def add_virtual_fifo_topic_data(ulog, topic_name):
         # log does not contain the value we are looking for
         print(type(error), "(fifo data):", error)
         return False
+
+def dropdown(text):
+    DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
+    datatype = Select(value='XY', options=DEFAULT_FIELDS)
+    return datatype
 
 
 def plot_parameter_changes(p, plots_height, changed_parameters):

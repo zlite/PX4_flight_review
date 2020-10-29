@@ -11,11 +11,7 @@ from config import *
 from helper import *
 from leaflet import ulog_to_polyline
 from plotting import *
-from plotted_tables import (
-    get_logged_messages, get_changed_parameters,
-    get_info_table_html, get_heading_html, get_error_labels_html,
-    get_hardfault_html, get_corrupt_log_html
-    )
+from plotted_tables import *
 
 #pylint: disable=cell-var-from-loop, undefined-loop-variable,
 #pylint: disable=consider-using-enumerate,too-many-statements

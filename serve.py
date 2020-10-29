@@ -9,7 +9,6 @@ import os
 import sys
 import errno
 import runpy
-# import thiel
 
 from bokeh.application import Application
 from bokeh.server.server import Server
@@ -24,7 +23,6 @@ from tornado.web import StaticFileHandler
 from tornado.web import RedirectHandler
 from tornado_handlers.download import DownloadHandler
 from tornado_handlers.upload import UploadHandler
-from tornado_handlers.thiel import ThielHandler
 from tornado_handlers.browse import BrowseHandler, BrowseDataRetrievalHandler
 from tornado_handlers.edit_entry import EditEntryHandler
 from tornado_handlers.db_info_json import DBInfoHandler
@@ -55,7 +53,6 @@ from bokeh.models import Range1d
 from bokeh.server.server import Server
 from bokeh.themes import Theme
 from bokeh.application.handlers import DirectoryHandler
-import thiel
 
 
 import time
@@ -84,8 +81,6 @@ parser = argparse.ArgumentParser(description='Start bokeh Server')
 
 parser.add_argument('-s', '--show', dest='show', action='store_true',
                     help='Open browser on startup')
-parser.add_argument('-st', '--showthiel', dest='show_thiel', action='store_true',
-                    help='Show Thiel on startup')
 parser.add_argument('--use-xheaders', action='store_true',
                     help="Prefer X-headers for IP/protocol information")
 parser.add_argument('-f', '--file', metavar='file.ulg', action='store',
@@ -135,9 +130,7 @@ server_kwargs['http_server_kwargs'] = {'max_buffer_size': 300 * 1024 * 1024}
 
 show_ulog_file = False
 show_3d_page = False
-show_thiel = False
 show_pid_analysis_page = False
-if args.show_thiel: show_thiel = True
 if args.file is not None:
     ulog_file = os.path.abspath(args.file)
     show_ulog_file = True
@@ -145,7 +138,6 @@ if args.file is not None:
     show_3d_page = args.threed
     show_pid_analysis_page = args.pid_analysis
 
-print("Show Thiel value:", show_thiel, args.show_thiel)
 
 applications = {}
 
@@ -156,11 +148,6 @@ if args.show:
     handler = DirectoryHandler(filename=main_path)
     applications['/plot_app'] = Application(handler)
 
-# if show_thiel:
-#     main_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app2')
-#     sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app2'))
-#     handler = DirectoryHandler(filename=main_path)
-#     applications['/plot_app2'] = Application(handler)
 
 set_log_id_is_filename(show_ulog_file)
 
@@ -169,7 +156,6 @@ set_log_id_is_filename(show_ulog_file)
 extra_patterns = [
     (r'/upload', UploadHandler),
     (r'/browse', BrowseHandler),
-    (r'/thiel', ThielHandler),
     (r'/browse_data_retrieval', BrowseDataRetrievalHandler),
     (r'/3d', ThreeDHandler),
     (r'/radio_controller', RadioControllerHandler),
@@ -198,18 +184,6 @@ while server is None:
         else:
             raise
 
-    # while server is None:
-    #     try:
-    #         server = Server({'/': thiel.startserver})
-    #     except OSError as e:
-    #         # if we get a port bind error and running locally with '-f',
-    #         # automatically select another port (useful for opening multiple logs)
-    #         if e.errno == errno.EADDRINUSE and show_ulog_file:
-    #             custom_port += 1
-    #             server_kwargs['port'] = custom_port
-    #         else:
-    #             raise
-
 
 
 if args.show:
@@ -223,9 +197,6 @@ if args.show:
                 server.show('/plot_app?plots=pid_analysis&log='+ulog_file)
             else:
                 server.show('/plot_app?log='+ulog_file)
-        elif show_thiel:
-                print("showing Thiel stuff")
-                server.show('/thiel')
         else:
             server.show('/upload')
     server.io_loop.add_callback(show_callback)

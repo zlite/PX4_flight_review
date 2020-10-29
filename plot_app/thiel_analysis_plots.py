@@ -5,16 +5,18 @@ from bokeh.models.widgets import Div
 from bokeh.layouts import column
 from scipy.interpolate import interp1d
 
-from plotting import *
+import plotting
 from plotted_tables import *
-from configured_plots import generate_plots
+from configured_plots import *
 
 from config import *
 from helper import *
 from leaflet import ulog_to_polyline
-from plotted_tables import get_heading_html
 
 #pylint: disable=cell-var-from-loop, undefined-loop-variable,
+
+def sim_change(attrname, old, new):
+    print("Sim change:", new)
 
 def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main_plots):
     """
@@ -45,32 +47,10 @@ This page shows the correspondance between a simulated and a real flight log.
 
 # plot positions
 
-# Position plot
-    data_plot = DataPlot2D(data, plot_config, 'vehicle_local_position',
-                           x_axis_label='[m]', y_axis_label='[m]', plot_height='large')
-    data_plot.add_graph('y', 'x', colors2[0], 'Estimated',
-                        check_if_all_zero=True)
-    if not data_plot.had_error: # vehicle_local_position is required
-        data_plot.change_dataset('vehicle_local_position_setpoint')
-        data_plot.add_graph('y', 'x', colors2[1], 'Setpoint')
-        # groundtruth (SITL only)
-        data_plot.change_dataset('vehicle_local_position_groundtruth')
-        data_plot.add_graph('y', 'x', color_gray, 'Groundtruth')
-        # GPS + position setpoints
-        plot_map(ulog, plot_config, map_type='plain', setpoints=True,
-                 bokeh_plot=data_plot.bokeh_plot)
-        if data_plot.finalize() is not None:
-            plots.append(data_plot.bokeh_plot)
-
-            # Leaflet Map
-            try:
-                pos_datas, flight_modes = ulog_to_polyline(ulog, flight_mode_changes)
-                curdoc().template_variables['pos_datas'] = pos_datas
-                curdoc().template_variables['pos_flight_modes'] = flight_modes
-            except:
-                pass
-            curdoc().template_variables['has_position_data'] = True
-
+    thiel_dropdown = dropdown("test")
+    print ("Thiel dropdown returned: ", thiel_dropdown)
+    plots.append(thiel_dropdown)
+    thiel_dropdown.on_change('value', sim_change)
 
     
     # Local position

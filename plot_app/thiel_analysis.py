@@ -302,5 +302,5 @@ def startserver(doc):
 
     data_plot.set_use_time_formatter(False)
     data_plot.finalize()
-    return data_plot
+ #   return data_plot
 
