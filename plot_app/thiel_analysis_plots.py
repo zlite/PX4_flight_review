@@ -1,4 +1,14 @@
 """ This contains Thiel analysis plots """
+
+
+import px4tools
+import numpy as np
+import math
+import io
+import os
+import sys
+import errno
+
 #import thiel_analysis
 from bokeh.io import curdoc,output_file, show
 from bokeh.models.widgets import Div
@@ -45,6 +55,13 @@ read_file = True
 reverse_sim_data = False
 reverse_real_data = False
 new_data = True
+
+sim_reverse_button = RadioButtonGroup(
+        labels=["Sim Default", "Reversed"], active=0)
+sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
+real_reverse_button = RadioButtonGroup(
+        labels=["Real Default", "Reversed"], active=0)
+real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
 
 @lru_cache()
@@ -256,25 +273,17 @@ This page shows the correspondance between a simulated and a real flight log.
     x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
     x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
 
-  #  plots = thiel_analysis.startserver
 
 # plot positions
 
-    datatype = dropdown("test")
-    plots.append(datatype)
+    datatype = Select(value='XY', options=DEFAULT_FIELDS)
     datatype.on_change('value', sim_change)
 
-    sim_reverse_button = RadioButtonGroup(
-            labels=["Sim Default", "Reversed"], active=0)
-    sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
-    real_reverse_button = RadioButtonGroup(
-            labels=["Real Default", "Reversed"], active=0)
-    real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
-    sim_button = column(sim_reverse_button)
-    real_button = column(real_reverse_button)
-    plots.append(sim_button)
-    plots.append(real_button)
+
+    simsource_static.selected.on_change('indices', simselection_change)
+
+   
 
     file_input = FileInput(accept=".ulg, .csv")
     file_input.on_change('value', upload_new_data_sim)
