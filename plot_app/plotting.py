@@ -93,11 +93,6 @@ def add_virtual_fifo_topic_data(ulog, topic_name):
         print(type(error), "(fifo data):", error)
         return False
 
-def dropdown(text):
-    DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
-    datatype = Select(value='XY', options=DEFAULT_FIELDS)
-    return datatype
-
 
 def plot_parameter_changes(p, plots_height, changed_parameters):
     """ plot changed parameters as text with value into bokeh plot p """

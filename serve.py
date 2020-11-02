@@ -142,7 +142,6 @@ if args.file is not None:
 applications = {}
 
 if args.show:
-    print("Args.show seems to be true?")
     main_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app')
     sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app'))
     handler = DirectoryHandler(filename=main_path)

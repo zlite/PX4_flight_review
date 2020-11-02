@@ -63,6 +63,32 @@ real_reverse_button = RadioButtonGroup(
         labels=["Real Default", "Reversed"], active=0)
 real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
+# set up widgets
+
+stats = PreText(text='Thiel Coefficient', width=500)
+# datatype = Select(value='XY', options=DEFAULT_FIELDS)
+
+# set up plots
+
+
+simsource = ColumnDataSource(data = dict(simx=[],simy=[]))
+simsource_static = ColumnDataSource(data = dict(simx=[],simy=[]))
+realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
+realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
+
+
+realtools = 'xpan,wheel_zoom,xbox_select,reset'
+simtools = 'xpan,wheel_zoom,reset'
+
+ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
+ts1.line('simx', 'simy', source=simsource, line_width=2)
+ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selection_color="orange")
+
+ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
+# to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
+# ts2.x_range = ts1.x_range
+ts2.line('realx', 'realy', source=realsource, line_width=2)
+ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
 
 @lru_cache()
 def load_data_sim(simname):
@@ -98,32 +124,6 @@ def get_data(simname,realname):
     select_data=np.asarray(data)  # convert to an array for real selection line
 #    original_data = copy.deepcopy(data)
     return data
-
-# set up widgets
-
-stats = PreText(text='Thiel Coefficient', width=500)
-datatype = Select(value='XY', options=DEFAULT_FIELDS)
-
-# set up plots
-
-simsource = ColumnDataSource(data = dict(simx=[],simy=[]))
-simsource_static = ColumnDataSource(data = dict(simx=[],simy=[]))
-realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
-realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
-
-realtools = 'xpan,wheel_zoom,xbox_select,reset'
-simtools = 'xpan,wheel_zoom,reset'
-
-ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
-ts1.line('simx', 'simy', source=simsource, line_width=2)
-ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selection_color="orange")
-
-ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
-# to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
-# ts2.x_range = ts1.x_range
-ts2.line('realx', 'realy', source=realsource, line_width=2)
-ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
-
 
 def update(selected=None):
     global read_file, reverse_sim_data, reverse_real_data, new_data, simsource, simsource_static, realsource, realsource_static,original_data, data, data_static, new_data, select_data, select_datadf
@@ -247,8 +247,10 @@ def change_real_scale(shift):
 
 def sim_change(attrname, old, new):
     print("Sim change:", new)
+    print(dfdata[new])   
 
 def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main_plots):
+    global dfdata
     """
     get all bokeh plots shown on the Thiel analysis page
     :return: list of bokeh plots
@@ -267,16 +269,59 @@ This page shows the correspondance between a simulated and a real flight log.
         ulog, px4_ulog,db_data, None, [('Open Main Plots', link_to_main_plots)],
         'Thiel Analysis') + page_intro
 
-    plots = []
+
+    cur_dataset = ulog.get_dataset('vehicle_local_position')
+    dfdata = pd.DataFrame(cur_dataset.data)
+    print(dfdata['x'])        
+    keys = []
     data = ulog.data_list
+    for d in data:
+        data_keys = [f.field_name for f in d.field_data]
+        data_keys.remove('timestamp')
+#        print (data_keys)
+        keys.append(data_keys)
+
+    t = cur_dataset.data['timestamp']
+    x = cur_dataset.data['x']
+    y = cur_dataset.data['y']
+
+
+    simsource = ColumnDataSource(data=dict(x=x, y=y))
+
+
+
+
+
+
+    plots = []
     flight_mode_changes = get_flight_mode_changes(ulog)
     x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
     x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
 
+    # cur_dataset = {}
+    # cur_dataset = ulog.get_dataset('vehicle_gps_position')
+
+    # # x = cur_dataset.data['vehicle_local_position']
+    # # y = cur_dataset.data['y']
+    #     # FIXME: bokeh should be able to handle np.nan values properly, but
+    # # we still get a ValueError('Out of range float values are not JSON
+    # # compliant'), if x or y contains nan
+    # non_nan_indexes = np.logical_not(np.logical_or(np.isnan(x), np.isnan(y)))
+    # x = x[non_nan_indexes]
+    # y = y[non_nan_indexes]
+
+    # if check_if_all_zero:
+    #     if np.count_nonzero(x) == 0 and np.count_nonzero(y) == 0:
+    #         raise ValueError()
+
+    # data_source = ColumnDataSource(data=dict(x=x, y=y))
+    # data_set['timestamp'] = cur_dataset.data['timestamp']
 
 # plot positions
 
-    datatype = Select(value='XY', options=DEFAULT_FIELDS)
+#    datatype = Select(value='XY', options=DEFAULT_FIELDS)
+    datatype = Select(value='XY', options=keys[0])
+
     datatype.on_change('value', sim_change)
 
 
@@ -293,6 +338,7 @@ This page shows the correspondance between a simulated and a real flight log.
     intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
     sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
     real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
+    choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
     #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
     simsource_static.selected.on_change('indices', simselection_change)
@@ -321,6 +367,7 @@ This page shows the correspondance between a simulated and a real flight log.
     curdoc().add_root(file_input)
     curdoc().add_root(real_upload_text)
     curdoc().add_root(file_input2)
+    curdoc().add_root(choose_field_text)    
     curdoc().add_root(layout)
     curdoc().title = "Flight data"
     
