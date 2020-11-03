@@ -68,27 +68,7 @@ real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 stats = PreText(text='Thiel Coefficient', width=500)
 # datatype = Select(value='XY', options=DEFAULT_FIELDS)
 
-# set up plots
 
-
-simsource = ColumnDataSource(data = dict(simx=[],simy=[]))
-simsource_static = ColumnDataSource(data = dict(simx=[],simy=[]))
-realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
-realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
-
-
-realtools = 'xpan,wheel_zoom,xbox_select,reset'
-simtools = 'xpan,wheel_zoom,reset'
-
-ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
-ts1.line('simx', 'simy', source=simsource, line_width=2)
-ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selection_color="orange")
-
-ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
-# to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
-# ts2.x_range = ts1.x_range
-ts2.line('realx', 'realy', source=realsource, line_width=2)
-ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
 
 @lru_cache()
 def load_data_sim(simname):
@@ -250,7 +230,7 @@ def sim_change(attrname, old, new):
     print(dfdata[new])   
 
 def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main_plots):
-    global dfdata
+    global dfdata, simsource, simsource_static, realsource, realsource_static, usimsource, ts1, ts2, x, y
     """
     get all bokeh plots shown on the Thiel analysis page
     :return: list of bokeh plots
@@ -265,9 +245,20 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 This page shows the correspondance between a simulated and a real flight log.
 </p>
     """
+    # curdoc().template_variables['title_html'] = get_heading_html(
+    #     ulog, px4_ulog,db_data, None, [('Open Main Plots', link_to_main_plots,)],
+    #     'Thiel Analysis') + page_intro
     curdoc().template_variables['title_html'] = get_heading_html(
-        ulog, px4_ulog,db_data, None, [('Open Main Plots', link_to_main_plots)],
-        'Thiel Analysis') + page_intro
+        ulog, px4_ulog, db_data, None,
+        additional_links=[('Open Main Plots', link_to_main_plots,),("Open Matching Simulation Log", '/browse?search=sim')])
+
+
+    # set up plots
+
+    simsource = ColumnDataSource(data = dict(x=[],y=[]))
+    simsource_static = ColumnDataSource(data = dict(x=[],y=[]))
+    realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
+    realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
 
 
     cur_dataset = ulog.get_dataset('vehicle_local_position')
@@ -278,7 +269,7 @@ This page shows the correspondance between a simulated and a real flight log.
     for d in data:
         data_keys = [f.field_name for f in d.field_data]
         data_keys.remove('timestamp')
-#        print (data_keys)
+    #        print (data_keys)
         keys.append(data_keys)
 
     t = cur_dataset.data['timestamp']
@@ -286,11 +277,21 @@ This page shows the correspondance between a simulated and a real flight log.
     y = cur_dataset.data['y']
 
 
-    simsource = ColumnDataSource(data=dict(x=x, y=y))
+    usimsource = ColumnDataSource(data=dict(x=x, y=y))
+    usimsource_static = ColumnDataSource(data=dict(x=x, y=y))
 
+    realtools = 'xpan,wheel_zoom,xbox_select,reset'
+    simtools = 'xpan,wheel_zoom,reset'
 
+    ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
+    ts1.line('x', 'y', source=usimsource, line_width=2)
+    ts1.circle('x', 'y', size=1, source=usimsource_static, color=None, selection_color="orange")
 
-
+    ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
+    # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
+    # ts2.x_range = ts1.x_range
+    ts2.line('realx', 'realy', source=realsource, line_width=2)
+    ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
 
 
     plots = []
