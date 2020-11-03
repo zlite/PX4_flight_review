@@ -35,6 +35,11 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
         data_length = int(self.get_argument('length'))
         draw_counter = int(self.get_argument('draw'))
 
+        sim = False
+        if search_str == "sim":
+            print("Search string is sim")
+            sim = True
+
         json_output = dict()
         json_output['draw'] = draw_counter
 
@@ -165,21 +170,39 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
                 image_col = '<img class="map_overview" src="/overview_img/'
                 image_col += log_id+'.png" alt="Overview Image Load Failed" height=50/>'
 
-            return Columns([
-                counter,
-                '<a href="plot_app?log='+log_id+'">'+log_date+'</a>',
-                image_col,
-                description,
-                db_data.mav_type,
-                airframe,
-                db_data.sys_hw,
-                ver_sw,
-                duration_str,
-                start_time_str,
-                db_data.rating_str(),
-                db_data.num_logged_errors,
-                flight_modes
-            ], search_only_columns)
+            if sim:
+                templog_id = log_id+"thiel"
+                return Columns([
+                    counter,
+                    '<a href="plot_app?log='+templog_id+'">'+log_date+'</a>',
+                    image_col,
+                    description,
+                    db_data.mav_type,
+                    airframe,
+                    db_data.sys_hw,
+                    ver_sw,
+                    duration_str,
+                    start_time_str,
+                    db_data.rating_str(),
+                    db_data.num_logged_errors,
+                    flight_modes
+                ], search_only_columns)
+            else:
+                return Columns([
+                    counter,
+                    '<a href="plot_app?log='+log_id+'">'+log_date+'</a>',
+                    image_col,
+                    description,
+                    db_data.mav_type,
+                    airframe,
+                    db_data.sys_hw,
+                    ver_sw,
+                    duration_str,
+                    start_time_str,
+                    db_data.rating_str(),
+                    db_data.num_logged_errors,
+                    flight_modes
+                ], search_only_columns)
 
         # need to fetch all here, because we will do more SQL calls while
         # iterating (having multiple cursor's does not seem to work)

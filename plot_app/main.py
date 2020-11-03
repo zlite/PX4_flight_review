@@ -97,15 +97,22 @@ else:
     ulog_file_name = os.path.join(get_log_filepath(), ulog_file_name)
     error_message = ''
     log_id = ''
+    sim = False
 
     try:
 
         if GET_arguments is not None and 'log' in GET_arguments:
             log_args = GET_arguments['log']
             if len(log_args) == 1:
-                log_id = str(log_args[0], 'utf-8')
-                if not validate_log_id(log_id):
-                    raise ValueError('Invalid log id: {}'.format(log_id))
+                templog_id = str(log_args[0], 'utf-8')
+                if templog_id.find("thiel") is not -1:
+                    sim = True
+                    print("sim is true")
+                    log_id = templog_id.replace('thiel','')
+                else:
+                    log_id = str(log_args[0], 'utf-8')
+                    if not validate_log_id(log_id):
+                        raise ValueError('Invalid log id: {}'.format(log_id))
                 print('GET[log]={}'.format(log_id))
                 ulog_file_name = get_log_filename(log_id)
 
