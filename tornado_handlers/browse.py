@@ -70,7 +70,7 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
                     '       LogsGenerated.* '
                     'FROM Logs '
                     '   LEFT JOIN LogsGenerated on Logs.Id=LogsGenerated.Id '
-#                    'WHERE Logs.Public = 1 AND NOT Logs.Source = "CI" '
+#                    'WHERE Logs.Public = 1 AND NOT Logs.Source = "CI" '        # this is commented out so both public and private show
                     +sql_order)
 
         # pylint: disable=invalid-name
@@ -239,6 +239,9 @@ class BrowseHandler(tornado.web.RequestHandler):
 
     def get(self, *args, **kwargs):
         """ GET request """
+
+
+
         template = get_jinja_env().get_template(BROWSE_TEMPLATE)
 
         template_args = {}
