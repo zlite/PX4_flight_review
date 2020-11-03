@@ -196,7 +196,7 @@ else:
             plots_args = GET_arguments['plots']
             if len(plots_args) == 1:
                 plots_page = str(plots_args[0], 'utf-8')
-        if plots_page == 'thiel_analysis':
+        if plots_page == 'thiel_analysis' or sim:
             print("Returned thiel analysis")
             try:
                 link_to_main_plots = '?log='+log_id
