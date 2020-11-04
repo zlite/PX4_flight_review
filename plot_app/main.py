@@ -106,9 +106,9 @@ else:
             if len(log_args) == 1:
                 templog_id = str(log_args[0], 'utf-8')
                 if templog_id.find("thiel") is not -1:
-                    sim = True
-                    print("sim is true")
                     log_id = templog_id.replace('thiel','')
+                    sim = True
+                    print("sim is true. New log ID=", log_id)
                 else:
                     log_id = str(log_args[0], 'utf-8')
                     if not validate_log_id(log_id):
@@ -196,10 +196,14 @@ else:
             plots_args = GET_arguments['plots']
             if len(plots_args) == 1:
                 plots_page = str(plots_args[0], 'utf-8')
-        if plots_page == 'thiel_analysis' or sim:
+        if sim or (plots_page == 'thiel_analysis'):
             print("Returned thiel analysis")
             try:
-                link_to_main_plots = '?log='+log_id
+                if sim:
+                    link_to_main_plots = '?log='+log_id+'sim'
+                    print("Sending a sim file back to Thiel")
+                else:
+                    link_to_main_plots = '?log='+log_id
                 plots = get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data,
                                                link_to_main_plots)
                 title = 'Thiel Review - '+px4_ulog.get_mav_type()
@@ -252,7 +256,10 @@ else:
 
             link_to_3d_page = '3d?log='+log_id
             link_to_pid_analysis_page = '?plots=pid_analysis&log='+log_id
-            link_to_thiel_analysis_page = '?plots=thiel_analysis&log='+log_id
+            if sim:
+                link_to_thiel_analysis_page = '?plots=thiel_analysis&log='+log_id+"sim"
+            else:
+                link_to_thiel_analysis_page = '?plots=thiel_analysis&log='+log_id
 
             try:
                 plots = generate_plots(ulog, px4_ulog, db_data, vehicle_data,

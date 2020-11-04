@@ -240,153 +240,165 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         data_f = interp1d(time_array, data, fill_value='extrapolate')
         return data_f(desired_time)
 
-    page_intro = """
-<p>
-This page shows the correspondance between a simulated and a real flight log.
-</p>
-    """
-    # curdoc().template_variables['title_html'] = get_heading_html(
-    #     ulog, px4_ulog,db_data, None, [('Open Main Plots', link_to_main_plots,)],
-    #     'Thiel Analysis') + page_intro
-    curdoc().template_variables['title_html'] = get_heading_html(
-        ulog, px4_ulog, db_data, None,
-        additional_links=[('Open Main Plots', link_to_main_plots,),("Open Matching Simulation Log", '/browse?search=sim')])
+
+    sim = False
+    print("This is what I think link_to_main_plots is:", link_to_main_plots)
+    if link_to_main_plots.find("sim") is not -1:
+        temp_link_to_main_plots = link_to_main_plots.replace('sim','')
+        sim = True
 
 
-    # set up plots
-
-    simsource = ColumnDataSource(data = dict(x=[],y=[]))
-    simsource_static = ColumnDataSource(data = dict(x=[],y=[]))
-    realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
-    realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
-
-
-    cur_dataset = ulog.get_dataset('vehicle_local_position')
-    dfdata = pd.DataFrame(cur_dataset.data)
-    print(dfdata['x'])        
-    keys = []
-    data = ulog.data_list
-    for d in data:
-        data_keys = [f.field_name for f in d.field_data]
-        data_keys.remove('timestamp')
-    #        print (data_keys)
-        keys.append(data_keys)
-
-    t = cur_dataset.data['timestamp']
-    x = cur_dataset.data['x']
-    y = cur_dataset.data['y']
+    if sim:
+        print("do some sim stuff")
+    else:
+        print("do regular stuff")
+        page_intro = """
+    <p>
+    This page shows the correspondance between a simulated and a real flight log.
+    </p>
+        """
+        # curdoc().template_variables['title_html'] = get_heading_html(
+        #     ulog, px4_ulog,db_data, None, [('Open Main Plots', link_to_main_plots,)],
+        #     'Thiel Analysis') + page_intro
+        curdoc().template_variables['title_html'] = get_heading_html(
+            ulog, px4_ulog, db_data, None,
+            additional_links=[('Open Main Plots', link_to_main_plots,),("Open Matching Simulation Log", '/browse?search=sim')])
 
 
-    usimsource = ColumnDataSource(data=dict(x=x, y=y))
-    usimsource_static = ColumnDataSource(data=dict(x=x, y=y))
+        # set up plots
 
-    realtools = 'xpan,wheel_zoom,xbox_select,reset'
-    simtools = 'xpan,wheel_zoom,reset'
-
-    ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
-    ts1.line('x', 'y', source=usimsource, line_width=2)
-    ts1.circle('x', 'y', size=1, source=usimsource_static, color=None, selection_color="orange")
-
-    ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
-    # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
-    # ts2.x_range = ts1.x_range
-    ts2.line('realx', 'realy', source=realsource, line_width=2)
-    ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
+        simsource = ColumnDataSource(data = dict(x=[],y=[]))
+        simsource_static = ColumnDataSource(data = dict(x=[],y=[]))
+        realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
+        realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
 
 
-    plots = []
-    flight_mode_changes = get_flight_mode_changes(ulog)
-    x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
-    x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
+        cur_dataset = ulog.get_dataset('vehicle_local_position')
+        dfdata = pd.DataFrame(cur_dataset.data)
+        print(dfdata['x'])        
+        keys = []
+        data = ulog.data_list
+        for d in data:
+            data_keys = [f.field_name for f in d.field_data]
+            data_keys.remove('timestamp')
+        #        print (data_keys)
+            keys.append(data_keys)
 
-    # cur_dataset = {}
-    # cur_dataset = ulog.get_dataset('vehicle_gps_position')
-
-    # # x = cur_dataset.data['vehicle_local_position']
-    # # y = cur_dataset.data['y']
-    #     # FIXME: bokeh should be able to handle np.nan values properly, but
-    # # we still get a ValueError('Out of range float values are not JSON
-    # # compliant'), if x or y contains nan
-    # non_nan_indexes = np.logical_not(np.logical_or(np.isnan(x), np.isnan(y)))
-    # x = x[non_nan_indexes]
-    # y = y[non_nan_indexes]
-
-    # if check_if_all_zero:
-    #     if np.count_nonzero(x) == 0 and np.count_nonzero(y) == 0:
-    #         raise ValueError()
-
-    # data_source = ColumnDataSource(data=dict(x=x, y=y))
-    # data_set['timestamp'] = cur_dataset.data['timestamp']
-
-# plot positions
-
-#    datatype = Select(value='XY', options=DEFAULT_FIELDS)
-    datatype = Select(value='XY', options=keys[0])
-
-    datatype.on_change('value', sim_change)
+        t = cur_dataset.data['timestamp']
+        x = cur_dataset.data['x']
+        y = cur_dataset.data['y']
 
 
+        usimsource = ColumnDataSource(data=dict(x=x, y=y))
+        usimsource_static = ColumnDataSource(data=dict(x=x, y=y))
 
-    simsource_static.selected.on_change('indices', simselection_change)
+        realtools = 'xpan,wheel_zoom,xbox_select,reset'
+        simtools = 'xpan,wheel_zoom,reset'
 
-   
+        ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
+        ts1.line('x', 'y', source=usimsource, line_width=2)
+        ts1.circle('x', 'y', size=1, source=usimsource_static, color=None, selection_color="orange")
 
-    file_input = FileInput(accept=".ulg, .csv")
-    file_input.on_change('value', upload_new_data_sim)
-    file_input2 = FileInput(accept=".ulg, .csv")
-    file_input2.on_change('value', upload_new_data_real)
-
-    intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
-    sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
-    real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
-    choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
-    #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
-
-    simsource_static.selected.on_change('indices', simselection_change)
+        ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
+        # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
+        # ts2.x_range = ts1.x_range
+        ts2.line('realx', 'realy', source=realsource, line_width=2)
+        ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
 
 
-    # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
-    #ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
-    #ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
+        plots = []
+        flight_mode_changes = get_flight_mode_changes(ulog)
+        x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
+        x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
 
-    ts1.x_range.on_change('end', lambda attr, old, new: change_sim_scale(ts1.x_range.start))
-    ts2.x_range.on_change('end', lambda attr, old, new: change_real_scale(ts2.x_range.start))
+        # cur_dataset = {}
+        # cur_dataset = ulog.get_dataset('vehicle_gps_position')
 
-    # set up layout
-    widgets = column(datatype,stats)
-    sim_button = column(sim_reverse_button)
-    real_button = column(real_reverse_button)
-    main_row = row(widgets)
-    series = column(ts1, sim_button, ts2, real_button)
-    layout = column(main_row, series)
+        # # x = cur_dataset.data['vehicle_local_position']
+        # # y = cur_dataset.data['y']
+        #     # FIXME: bokeh should be able to handle np.nan values properly, but
+        # # we still get a ValueError('Out of range float values are not JSON
+        # # compliant'), if x or y contains nan
+        # non_nan_indexes = np.logical_not(np.logical_or(np.isnan(x), np.isnan(y)))
+        # x = x[non_nan_indexes]
+        # y = y[non_nan_indexes]
 
-    # initialize
-    update()
-    curdoc().add_root(intro_text)
+        # if check_if_all_zero:
+        #     if np.count_nonzero(x) == 0 and np.count_nonzero(y) == 0:
+        #         raise ValueError()
 
-    curdoc().add_root(sim_upload_text)
-    curdoc().add_root(file_input)
-    curdoc().add_root(real_upload_text)
-    curdoc().add_root(file_input2)
-    curdoc().add_root(choose_field_text)    
-    curdoc().add_root(layout)
-    curdoc().title = "Flight data"
+        # data_source = ColumnDataSource(data=dict(x=x, y=y))
+        # data_set['timestamp'] = cur_dataset.data['timestamp']
+
+    # plot positions
+
+    #    datatype = Select(value='XY', options=DEFAULT_FIELDS)
+        datatype = Select(value='XY', options=keys[0])
+
+        datatype.on_change('value', sim_change)
+
+
+
+        simsource_static.selected.on_change('indices', simselection_change)
+
     
-    # Local position
-    for axis in ['x', 'y', 'z']:
-        data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
-                             y_axis_label='[m]', title='Local Position '+axis.upper(),
-                             plot_height='small', x_range=x_range)
-        data_plot.add_graph([axis], colors2[0:1], [axis.upper()+' Estimated'], mark_nan=True)
-        data_plot.change_dataset('vehicle_local_position_setpoint')
-        data_plot.add_graph([axis], colors2[1:2], [axis.upper()+' Setpoint'],
-                            use_step_lines=True)
-        plot_flight_modes_background(data_plot, flight_mode_changes)
 
-        if data_plot.finalize() is not None: plots.append(data_plot)
-    
-    x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
-    x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
+        file_input = FileInput(accept=".ulg, .csv")
+        file_input.on_change('value', upload_new_data_sim)
+        file_input2 = FileInput(accept=".ulg, .csv")
+        file_input2.on_change('value', upload_new_data_real)
+
+        intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
+        sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
+        real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
+        choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
+        #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
+
+        simsource_static.selected.on_change('indices', simselection_change)
+
+
+        # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
+        #ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
+        #ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
+
+        ts1.x_range.on_change('end', lambda attr, old, new: change_sim_scale(ts1.x_range.start))
+        ts2.x_range.on_change('end', lambda attr, old, new: change_real_scale(ts2.x_range.start))
+
+        # set up layout
+        widgets = column(datatype,stats)
+        sim_button = column(sim_reverse_button)
+        real_button = column(real_reverse_button)
+        main_row = row(widgets)
+        series = column(ts1, sim_button, ts2, real_button)
+        layout = column(main_row, series)
+
+        # initialize
+        update()
+        curdoc().add_root(intro_text)
+
+        curdoc().add_root(sim_upload_text)
+        curdoc().add_root(file_input)
+        curdoc().add_root(real_upload_text)
+        curdoc().add_root(file_input2)
+        curdoc().add_root(choose_field_text)    
+        curdoc().add_root(layout)
+        curdoc().title = "Flight data"
+        
+        # Local position
+        for axis in ['x', 'y', 'z']:
+            data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
+                                y_axis_label='[m]', title='Local Position '+axis.upper(),
+                                plot_height='small', x_range=x_range)
+            data_plot.add_graph([axis], colors2[0:1], [axis.upper()+' Estimated'], mark_nan=True)
+            data_plot.change_dataset('vehicle_local_position_setpoint')
+            data_plot.add_graph([axis], colors2[1:2], [axis.upper()+' Setpoint'],
+                                use_step_lines=True)
+            plot_flight_modes_background(data_plot, flight_mode_changes)
+
+            if data_plot.finalize() is not None: plots.append(data_plot)
+        
+        x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
+        x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
 
 
     # exchange all DataPlots with the bokeh_plot
