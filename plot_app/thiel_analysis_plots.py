@@ -45,8 +45,8 @@ DATA_DIR = join(dirname(__file__), 'datalogs')
 
 DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
-simname = 'airtonomysim.csv'
-realname = 'airtonomyreal.csv'
+simname = 'airtonomysim.ulg'
+realname = 'airtonomyreal.ulg'
 sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
 simx_offset = 0
@@ -73,16 +73,24 @@ stats = PreText(text='Thiel Coefficient', width=500)
 @lru_cache()
 def load_data_sim(simname):
     fname = join(DATA_DIR, simname)
-    data = pd.read_csv(fname)
-    dfsim = pd.DataFrame(data)
+    dfsim = load_ulog_file(fname)
+#    data = pd.read_csv(fname)
+    # ulog = ulog.read_ulog(fname)
+    # curdata = ulog.get_dataset('vehicle_local_position')
+    # dfsim = pd.DataFrame(curdata.data)
+#    dfsim = pd.DataFrame(data)
     return dfsim
 
 @lru_cache()
 def load_data_real(realname):
     fname = join(DATA_DIR, realname)
-    data = pd.read_csv(fname)
+    dfreal = load_ulog_file(fname)
+#    data = pd.read_csv(fname)
+    # ulog = px4tools.read_ulog(fname)
+    # curdata = ulog.get_dataset('vehicle_local_position')
+    # dfreal = pd.DataFrame(curdata.data)
  #   select_data.to_numpy()  # convert to a numpy array
-    dfreal = pd.DataFrame(data)
+#    dfreal = pd.DataFrame(data)
     return dfreal
 
 
@@ -91,8 +99,8 @@ def get_data(simname,realname):
     global select_data
     dfsim = load_data_sim(simname)
     dfreal = load_data_real(realname)
-    data = pd.concat([dfsim, dfreal], axis=1)
-    data = data.dropna()   # remove missing values
+    # data = pd.concat([dfsim, dfreal], axis=1)
+    # data = data.dropna()   # remove missing values
     sim_mean = data.simy.mean()  # get the average
     real_mean = data.realy.mean()
     mean_diff = sim_mean - real_mean 
