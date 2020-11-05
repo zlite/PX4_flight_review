@@ -73,7 +73,9 @@ stats = PreText(text='Thiel Coefficient', width=500)
 @lru_cache()
 def load_data_sim(simname):
     fname = join(DATA_DIR, simname)
-    dfsim = load_ulog_file(fname)
+    ulog = load_ulog_file(fname)
+    cur_dataset = ulog.get_dataset('vehicle_local_position')
+    dfsim = pd.DataFrame(cur_dataset.data)
 #    data = pd.read_csv(fname)
     # ulog = ulog.read_ulog(fname)
     # curdata = ulog.get_dataset('vehicle_local_position')
@@ -84,7 +86,9 @@ def load_data_sim(simname):
 @lru_cache()
 def load_data_real(realname):
     fname = join(DATA_DIR, realname)
-    dfreal = load_ulog_file(fname)
+    ulog = load_ulog_file(fname)
+    cur_dataset = ulog.get_dataset('vehicle_local_position')
+    dfreal = pd.DataFrame(cur_dataset.data)
 #    data = pd.read_csv(fname)
     # ulog = px4tools.read_ulog(fname)
     # curdata = ulog.get_dataset('vehicle_local_position')
@@ -99,16 +103,19 @@ def get_data(simname,realname):
     global select_data
     dfsim = load_data_sim(simname)
     dfreal = load_data_real(realname)
+    data = pd.DataFrame() 
     # data = pd.concat([dfsim, dfreal], axis=1)
     # data = data.dropna()   # remove missing values
-    sim_mean = data.simy.mean()  # get the average
-    real_mean = data.realy.mean()
-    mean_diff = sim_mean - real_mean 
-    data.realy = data.realy + mean_diff # normalize the two
-    data['simy'] = data.simy
-    data['simx'] = data.simx
-    data['realy'] = data.realy
-    data['realx'] = data.realx
+    # print("Data,y")
+    # print (data.y.1)
+    # sim_mean = dfsim.y.mean()  # get the average
+    # real_mean = dfreal.y.mean()
+    # mean_diff = sim_mean - real_mean 
+    # data.realy = data.realy + mean_diff # normalize the two
+    data['simy'] = dfsim.y
+    data['simx'] = dfsim.x
+    data['realy'] = dfreal.y
+    data['realx'] = dfreal.x
     select_data=np.asarray(data)  # convert to an array for real selection line
 #    original_data = copy.deepcopy(data)
     return data
@@ -250,7 +257,6 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
 
     sim = False
-    print("This is what I think link_to_main_plots is:", link_to_main_plots)
     if link_to_main_plots.find("sim") is not -1:
         temp_link_to_main_plots = link_to_main_plots.replace('sim','')
         sim = True
