@@ -1,6 +1,9 @@
 """ This contains Thiel analysis plots """
 
 
+# TO DO: change all the data to the form dfsim.metric
+
+
 import px4tools
 import numpy as np
 import math
@@ -114,8 +117,11 @@ def get_data(simname,realname):
     # data.realy = data.realy + mean_diff # normalize the two
     data['simy'] = dfsim.y
     data['simx'] = dfsim.x
+    data['simt'] = dfsim.timestamp
     data['realy'] = dfreal.y
     data['realx'] = dfreal.x
+    data['realt'] = dfreal.timestamp
+
     select_data=np.asarray(data)  # convert to an array for real selection line
 #    original_data = copy.deepcopy(data)
     return data
@@ -241,8 +247,11 @@ def change_real_scale(shift):
 
 
 def sim_change(attrname, old, new):
+    global metric
     print("Sim change:", new)
-    print(dfdata[new])   
+    print(dfdata[new])
+    metric = new
+    update()   
 
 def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main_plots):
     global dfdata, simsource, simsource_static, realsource, realsource_static, usimsource, ts1, ts2, x, y
@@ -303,8 +312,8 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         y = cur_dataset.data['y']
 
 
-        usimsource = ColumnDataSource(data=dict(x=x, y=y))
-        usimsource_static = ColumnDataSource(data=dict(x=x, y=y))
+        usimsource = ColumnDataSource(data=dict(x=t, y=y))
+        usimsource_static = ColumnDataSource(data=dict(x=t, y=y))
 
         realtools = 'xpan,wheel_zoom,xbox_select,reset'
         simtools = 'xpan,wheel_zoom,reset'
