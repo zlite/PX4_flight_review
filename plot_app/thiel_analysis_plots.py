@@ -357,9 +357,9 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
     
 
-        file_input = FileInput(accept=".ulg, .csv")
+        file_input = FileInput(accept=".ulg")
         file_input.on_change('value', upload_new_data_sim)
-        file_input2 = FileInput(accept=".ulg, .csv")
+        file_input2 = FileInput(accept=".ulg")
         file_input2.on_change('value', upload_new_data_real)
 
         intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
