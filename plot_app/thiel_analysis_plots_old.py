@@ -48,8 +48,6 @@ DATA_DIR = join(dirname(__file__), 'datalogs')
 
 DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
-STANDARD_TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
-
 simname = 'airtonomysim.ulg'
 realname = 'airtonomyreal.ulg'
 sim_polarity = 1  # determines if we should reverse the Y data
@@ -299,7 +297,8 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
 
         cur_dataset = ulog.get_dataset('vehicle_local_position')
-        dfdata = pd.DataFrame(cur_dataset.data)       
+        dfdata = pd.DataFrame(cur_dataset.data)
+        print(dfdata['x'])        
         keys = []
         data = ulog.data_list
         for d in data:
@@ -313,27 +312,27 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         y = cur_dataset.data['y']
 
 
-        # usimsource = ColumnDataSource(data=dict(x=t, y=y))
-        # usimsource_static = ColumnDataSource(data=dict(x=t, y=y))
+        usimsource = ColumnDataSource(data=dict(x=t, y=y))
+        usimsource_static = ColumnDataSource(data=dict(x=t, y=y))
 
-        # realtools = 'xpan,wheel_zoom,xbox_select,reset'
-        # simtools = 'xpan,wheel_zoom,reset'
+        realtools = 'xpan,wheel_zoom,xbox_select,reset'
+        simtools = 'xpan,wheel_zoom,reset'
 
-        # ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
-        # ts1.line('x', 'y', source=usimsource, line_width=2)
-        # ts1.circle('x', 'y', size=1, source=usimsource_static, color=None, selection_color="orange")
+        ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
+        ts1.line('x', 'y', source=usimsource, line_width=2)
+        ts1.circle('x', 'y', size=1, source=usimsource_static, color=None, selection_color="orange")
 
-        # ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
-        # # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
-        # # ts2.x_range = ts1.x_range
-        # ts2.line('realx', 'realy', source=realsource, line_width=2)
-        # ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
+        ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
+        # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
+        # ts2.x_range = ts1.x_range
+        ts2.line('realx', 'realy', source=realsource, line_width=2)
+        ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
 
 
-        # plots = []
-        # flight_mode_changes = get_flight_mode_changes(ulog)
-        # x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
-        # x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
+        plots = []
+        flight_mode_changes = get_flight_mode_changes(ulog)
+        x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
+        x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
 
         # cur_dataset = {}
         # cur_dataset = ulog.get_dataset('vehicle_gps_position')
@@ -379,60 +378,37 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
         simsource_static.selected.on_change('indices', simselection_change)
-        x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
-        x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
-        flight_mode_changes = get_flight_mode_changes(ulog)
-
-        plots = []
-        plot_config['custom_tools'] = 'xpan,wheel_zoom,xbox_select,reset'
-
-        for axis in ['x', 'y', 'z']:
-            data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
-                                y_axis_label='[m]', title='Local Position '+axis.upper(),
-                                plot_height='small', x_range=x_range)
-            data_plot.add_graph([axis], colors2[0:1], [axis.upper()+' Estimated'], mark_nan=True)
-            data_plot.change_dataset('vehicle_local_position_setpoint')
-            data_plot.add_graph([axis], colors2[1:2], [axis.upper()+' Setpoint'],
-                                use_step_lines=True)
-            plot_flight_modes_background(data_plot, flight_mode_changes)
-
-            if data_plot.finalize() is not None: plots.append(data_plot)
-        
-      
 
 
+        # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
+        #ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
+        #ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
 
-        # # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
-        # #ts1.x_range.on_change('end', lambda attr, old, new: print ("TS1 X range = ", ts1.x_range.start, ts1.x_range.end))
-        # #ts2.x_range.on_change('end', lambda attr, old, new: print ("TS2 X range = ", ts2.x_range.start, ts2.x_range.end))
+        ts1.x_range.on_change('end', lambda attr, old, new: change_sim_scale(ts1.x_range.start))
+        ts2.x_range.on_change('end', lambda attr, old, new: change_real_scale(ts2.x_range.start))
 
-        # ts1.x_range.on_change('end', lambda attr, old, new: change_sim_scale(ts1.x_range.start))
-        # ts2.x_range.on_change('end', lambda attr, old, new: change_real_scale(ts2.x_range.start))
+        # set up layout
+        widgets = column(datatype,stats)
+        sim_button = column(sim_reverse_button)
+        real_button = column(real_reverse_button)
+        main_row = row(widgets)
+        series = column(ts1, sim_button, ts2, real_button)
+        layout = column(main_row, series)
 
-        # # set up layout
-        # widgets = column(datatype,stats)
-        # sim_button = column(sim_reverse_button)
-        # real_button = column(real_reverse_button)
-        # main_row = row(widgets)
-        # series = column(ts1, sim_button, ts2, real_button)
-        # layout = column(main_row, series)
+        # initialize
+        update()
+        curdoc().add_root(intro_text)
 
-        # # initialize
-        # update()
-        # curdoc().add_root(intro_text)
-
-        # curdoc().add_root(sim_upload_text)
-        # curdoc().add_root(file_input)
-        # curdoc().add_root(real_upload_text)
-        # curdoc().add_root(file_input2)
-        # curdoc().add_root(choose_field_text)    
-        # curdoc().add_root(layout)
-        # curdoc().title = "Flight data"
+        curdoc().add_root(sim_upload_text)
+        curdoc().add_root(file_input)
+        curdoc().add_root(real_upload_text)
+        curdoc().add_root(file_input2)
+        curdoc().add_root(choose_field_text)    
+        curdoc().add_root(layout)
+        curdoc().title = "Flight data"
 #        plot_config['custom_tools'] = 'xpan,wheel_zoom,xbox_select,reset'
         
         # Local position
-
-        plot_config['custom_tools'] = STANDARD_TOOLS
         for axis in ['x', 'y', 'z']:
             data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
                                 y_axis_label='[m]', title='Local Position '+axis.upper(),
@@ -444,6 +420,9 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
             plot_flight_modes_background(data_plot, flight_mode_changes)
 
             if data_plot.finalize() is not None: plots.append(data_plot)
+        
+        x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
+        x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
 
 
     # exchange all DataPlots with the bokeh_plot

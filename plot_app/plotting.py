@@ -432,6 +432,7 @@ class DataPlot:
         self._cur_dataset = None
         self._use_time_formatter = True
         try:
+            TOOLS = config['custom_tools']
             self._p = figure(title=title, x_axis_label=x_axis_label,
                              y_axis_label=y_axis_label, tools=TOOLS,
                              active_scroll=ACTIVE_SCROLL_TOOLS)
