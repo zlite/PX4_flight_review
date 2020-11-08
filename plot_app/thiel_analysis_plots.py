@@ -166,7 +166,7 @@ def update(selected=None):
         realsource_static.data = select_datadf
         new_data = False
 #    select_data = copy.deepcopy(tempdata)
-    ts1.title.text, ts2.title.text = 'Sim', 'Real'
+    # ts1.title.text, ts2.title.text = 'Sim', 'Real'
 
 def upload_new_data_sim(attr, old, new):
     global simname
@@ -308,9 +308,14 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         #        print (data_keys)
             keys.append(data_keys)
 
-        t = cur_dataset.data['timestamp']
-        x = cur_dataset.data['x']
-        y = cur_dataset.data['y']
+        simsource = cur_dataset
+        simsource_static = cur_dataset
+        realsource = cur_dataset
+        realsource_static = cur_dataset
+
+        t = realsource.data['timestamp']
+        x = realsource.data['x']
+        y = realsource.data['y']
 
 
         # usimsource = ColumnDataSource(data=dict(x=t, y=y))
@@ -361,10 +366,6 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
         datatype.on_change('value', sim_change)
 
-
-
-        simsource_static.selected.on_change('indices', simselection_change)
-
     
 
         file_input = FileInput(accept=".ulg")
@@ -383,6 +384,26 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
         flight_mode_changes = get_flight_mode_changes(ulog)
 
+        # set up layout
+        widgets = column(datatype,stats)
+        sim_button = column(sim_reverse_button)
+        real_button = column(real_reverse_button)
+        main_row = row(widgets)
+        series = column(sim_button, real_button)
+        layout = column(main_row, series)
+
+        # initialize
+        update()
+        curdoc().add_root(intro_text)
+
+        curdoc().add_root(sim_upload_text)
+        curdoc().add_root(file_input)
+        curdoc().add_root(real_upload_text)
+        curdoc().add_root(file_input2)
+        curdoc().add_root(choose_field_text)    
+        curdoc().add_root(layout)
+        curdoc().title = "Flight data"
+
         plots = []
         plot_config['custom_tools'] = 'xpan,wheel_zoom,xbox_select,reset'
 
@@ -395,7 +416,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
             data_plot.add_graph([axis], colors2[1:2], [axis.upper()+' Setpoint'],
                                 use_step_lines=True)
             plot_flight_modes_background(data_plot, flight_mode_changes)
-
+            print("New plot name", data_plot)
             if data_plot.finalize() is not None: plots.append(data_plot)
         
       
@@ -432,18 +453,18 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         
         # Local position
 
-        plot_config['custom_tools'] = STANDARD_TOOLS
-        for axis in ['x', 'y', 'z']:
-            data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
-                                y_axis_label='[m]', title='Local Position '+axis.upper(),
-                                plot_height='small', x_range=x_range)
-            data_plot.add_graph([axis], colors2[0:1], [axis.upper()+' Estimated'], mark_nan=True)
-            data_plot.change_dataset('vehicle_local_position_setpoint')
-            data_plot.add_graph([axis], colors2[1:2], [axis.upper()+' Setpoint'],
-                                use_step_lines=True)
-            plot_flight_modes_background(data_plot, flight_mode_changes)
+        # plot_config['custom_tools'] = STANDARD_TOOLS
+        # for axis in ['x', 'y', 'z']:
+        #     data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
+        #                         y_axis_label='[m]', title='Local Position '+axis.upper(),
+        #                         plot_height='small', x_range=x_range)
+        #     data_plot.add_graph([axis], colors2[0:1], [axis.upper()+' Estimated'], mark_nan=True)
+        #     data_plot.change_dataset('vehicle_local_position_setpoint')
+        #     data_plot.add_graph([axis], colors2[1:2], [axis.upper()+' Setpoint'],
+        #                         use_step_lines=True)
+        #     plot_flight_modes_background(data_plot, flight_mode_changes)
 
-            if data_plot.finalize() is not None: plots.append(data_plot)
+        #     if data_plot.finalize() is not None: plots.append(data_plot)
 
 
     # exchange all DataPlots with the bokeh_plot
