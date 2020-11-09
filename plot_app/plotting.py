@@ -26,7 +26,7 @@ from helper import (
     )
 
 
-TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
+TOOLS = "pan,wheel_zoom,box_zoom,reset,save, xbox_select"
 ACTIVE_SCROLL_TOOLS = "wheel_zoom"
 
 

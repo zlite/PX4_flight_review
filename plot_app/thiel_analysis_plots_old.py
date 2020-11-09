@@ -315,14 +315,14 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         usimsource = ColumnDataSource(data=dict(x=t, y=y))
         usimsource_static = ColumnDataSource(data=dict(x=t, y=y))
 
-        realtools = 'xpan,wheel_zoom,xbox_select,reset'
-        simtools = 'xpan,wheel_zoom,reset'
+        simtools = 'xpan,wheel_zoom,xbox_select,reset'
+        realtools = 'xpan,wheel_zoom,reset'
 
-        ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
-        ts1.line('x', 'y', source=usimsource, line_width=2)
-        ts1.circle('x', 'y', size=1, source=usimsource_static, color=None, selection_color="orange")
+        ts1 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear', active_drag="xbox_select")
+        ts1.line('x', 'y', source=simsource, line_width=2)
+        ts1.circle('x', 'y', size=1, source=simsource_static, color=None, selection_color="orange")
 
-        ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
+        ts2 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear')
         # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
         # ts2.x_range = ts1.x_range
         ts2.line('realx', 'realy', source=realsource, line_width=2)
@@ -359,11 +359,6 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         datatype = Select(value='XY', options=keys[0])
 
         datatype.on_change('value', sim_change)
-
-
-
-        simsource_static.selected.on_change('indices', simselection_change)
-
     
 
         file_input = FileInput(accept=".ulg")

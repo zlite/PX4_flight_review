@@ -290,13 +290,6 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
             additional_links=[('Open Main Plots', link_to_main_plots,),("Open Matching Simulation Log", '/browse?search=sim')])
 
 
-        # set up plots
-
-        simsource = ColumnDataSource(data = dict(x=[],y=[]))
-        simsource_static = ColumnDataSource(data = dict(x=[],y=[]))
-        realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
-        realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
-
 
         cur_dataset = ulog.get_dataset('vehicle_local_position')
         dfdata = pd.DataFrame(cur_dataset.data)       
@@ -308,14 +301,21 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         #        print (data_keys)
             keys.append(data_keys)
 
-        simsource = cur_dataset
-        simsource_static = cur_dataset
-        realsource = cur_dataset
-        realsource_static = cur_dataset
+        simsource = dfdata
+        simsource_static = dfdata
+        realsource = dfdata
+        realsource_static = dfdata
 
-        t = realsource.data['timestamp']
-        x = realsource.data['x']
-        y = realsource.data['y']
+        t = realsource['timestamp']
+        x = realsource['x']
+        y = realsource['y']
+
+                # set up plots
+
+        simsource = ColumnDataSource(data = dict(x=[],y=[]))
+        simsource_static = ColumnDataSource(data = dict(x=[],y=[]))
+        realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
+        realsource_static = ColumnDataSource(data = dict(realx=[],realy=[]))
 
 
         # usimsource = ColumnDataSource(data=dict(x=t, y=y))
@@ -379,7 +379,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
         #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
-        simsource_static.selected.on_change('indices', simselection_change)
+      
         x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
         x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
         flight_mode_changes = get_flight_mode_changes(ulog)
@@ -420,7 +420,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
             if data_plot.finalize() is not None: plots.append(data_plot)
         
       
-
+        simsource_static.selected.on_change('indices', simselection_change)
 
 
         # # The below are in case you want to see the x axis range change as you pan. Poorly documented elsewhere!
