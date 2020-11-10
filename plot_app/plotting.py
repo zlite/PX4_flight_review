@@ -26,7 +26,7 @@ from helper import (
     )
 
 
-TOOLS = "pan,wheel_zoom,box_zoom,reset,save, xbox_select"
+TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
 ACTIVE_SCROLL_TOOLS = "wheel_zoom"
 
 
@@ -414,6 +414,7 @@ class DataPlot:
     """
     Handle the bokeh plot generation from an ULog dataset
     """
+    global select
 
 
     def __init__(self, data, config, data_name, x_axis_label=None,
@@ -433,6 +434,10 @@ class DataPlot:
         self._use_time_formatter = True
         try:
             TOOLS = config['custom_tools']
+            select = False
+            if 'xbox_select' in config['custom_tools']:
+                print("Preparing selection stuff")
+                select = True
             self._p = figure(title=title, x_axis_label=x_axis_label,
                              y_axis_label=y_axis_label, tools=TOOLS,
                              active_scroll=ACTIVE_SCROLL_TOOLS)
@@ -509,6 +514,8 @@ class DataPlot:
             self._had_error = True
             self._cur_dataset = None
 
+    def selection_change():
+        print("do some selection stuff")
 
     def add_graph(self, field_names, colors, legends, use_downsample=True,
                   mark_nan=False, use_step_lines=False):
@@ -522,8 +529,14 @@ class DataPlot:
         instead of rendering a straight line to the next point
         """
         if self._had_error: return
+
         try:
             p = self._p
+            print(p.tools.__contains__(BoxSelectTool))
+            # if p.tools.contains("BoxSelectTool"):
+            #     print("Selection is on")
+            # else:
+            #     print("Can't find the box tools")
             data_set = {}
             data_set['timestamp'] = self._cur_dataset.data['timestamp']
             field_names_expanded = self._expand_field_names(field_names, data_set)
@@ -566,6 +579,9 @@ class DataPlot:
                 data_source = downsample.data_source
             else:
                 data_source = ColumnDataSource(data=data_set)
+
+# data_source.selected.on_change('indices', selection)
+
 
             for field_name, color, legend in zip(field_names_expanded, colors, legends):
                 if use_step_lines:
@@ -766,6 +782,7 @@ class DataPlot2D(DataPlot):
                     raise ValueError()
 
             data_source = ColumnDataSource(data=dict(x=x, y=y))
+
 
             p.line(x="x", y="y", source=data_source, line_width=2,
                    line_color=color, legend_label=legend)
