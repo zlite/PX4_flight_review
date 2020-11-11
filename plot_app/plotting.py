@@ -435,9 +435,9 @@ class DataPlot:
         try:
             TOOLS = config['custom_tools']
             select = False
-            if 'xbox_select' in config['custom_tools']:
-                print("Preparing selection stuff")
-                select = True
+            # if 'xbox_select' in config['custom_tools']:
+            #     print("Preparing selection stuff")
+            #     select = True
             self._p = figure(title=title, x_axis_label=x_axis_label,
                              y_axis_label=y_axis_label, tools=TOOLS,
                              active_scroll=ACTIVE_SCROLL_TOOLS)
@@ -514,8 +514,7 @@ class DataPlot:
             self._had_error = True
             self._cur_dataset = None
 
-    def selection_change():
-        print("do some selection stuff")
+
 
     def add_graph(self, field_names, colors, legends, use_downsample=True,
                   mark_nan=False, use_step_lines=False):
@@ -528,15 +527,13 @@ class DataPlot:
         :param use_step_lines: if True, render step lines (after each point)
         instead of rendering a straight line to the next point
         """
-        if self._had_error: return
+        def selection_change(attr, old, new):
+            print("do some selection stuff. Data is:", new)
 
+
+        if self._had_error: return
         try:
             p = self._p
-            print(p.tools.__contains__(BoxSelectTool))
-            # if p.tools.contains("BoxSelectTool"):
-            #     print("Selection is on")
-            # else:
-            #     print("Can't find the box tools")
             data_set = {}
             data_set['timestamp'] = self._cur_dataset.data['timestamp']
             field_names_expanded = self._expand_field_names(field_names, data_set)
@@ -579,6 +576,9 @@ class DataPlot:
                 data_source = downsample.data_source
             else:
                 data_source = ColumnDataSource(data=data_set)
+            print("Setting up selection callback")
+#            data_source.selected.on_change('indicies', selection_change)
+            data_source.on_change('selected', selection_change)
 
 # data_source.selected.on_change('indices', selection)
 
