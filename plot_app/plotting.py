@@ -26,7 +26,8 @@ from helper import (
     )
 
 
-TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
+MAPTOOLS = "pan,wheel_zoom,reset,save,box_zoom"
+TOOLS = "pan,wheel_zoom,reset,save,box_zoom,xbox_select"
 ACTIVE_SCROLL_TOOLS = "wheel_zoom"
 
 
@@ -303,7 +304,7 @@ def plot_map(ulog, config, map_type='plain', api_key=None, setpoints=False,
             lon, lat = WGS84_to_mercator(lon, lat)
             data_source = ColumnDataSource(data=dict(lat=lat, lon=lon))
 
-            p = figure(tools=TOOLS, active_scroll=ACTIVE_SCROLL_TOOLS)
+            p = figure(tools=MAPTOOLS, active_scroll=ACTIVE_SCROLL_TOOLS)
             p.plot_width = plots_width
             p.plot_height = plots_height
 
@@ -364,7 +365,7 @@ def plot_map(ulog, config, map_type='plain', api_key=None, setpoints=False,
             data_source = ColumnDataSource(data=dict(lat=lat, lon=lon))
 
             if bokeh_plot is None:
-                p = figure(tools=TOOLS, active_scroll=ACTIVE_SCROLL_TOOLS,
+                p = figure(tools=MAPTOOLS, active_scroll=ACTIVE_SCROLL_TOOLS,
                            x_axis_label='[m]', y_axis_label='[m]')
                 p.plot_width = plots_width
                 p.plot_height = plots_height
@@ -414,8 +415,6 @@ class DataPlot:
     """
     Handle the bokeh plot generation from an ULog dataset
     """
-    global select
-
 
     def __init__(self, data, config, data_name, x_axis_label=None,
                  y_axis_label=None, title=None, plot_height='normal',
@@ -433,14 +432,14 @@ class DataPlot:
         self._cur_dataset = None
         self._use_time_formatter = True
         try:
-            TOOLS = config['custom_tools']
+#            TOOLS = config['custom_tools']
             select = False
             # if 'xbox_select' in config['custom_tools']:
             #     print("Preparing selection stuff")
             #     select = True
             self._p = figure(title=title, x_axis_label=x_axis_label,
                              y_axis_label=y_axis_label, tools=TOOLS,
-                             active_scroll=ACTIVE_SCROLL_TOOLS)
+                             active_scroll=ACTIVE_SCROLL_TOOLS, active_drag='xbox_select')
             if y_range is not None:
                 self._p.y_range = Range1d(y_range.start, y_range.end)
             if x_range is not None:
@@ -527,9 +526,9 @@ class DataPlot:
         :param use_step_lines: if True, render step lines (after each point)
         instead of rendering a straight line to the next point
         """
+
         def selection_change(attr, old, new):
             print("do some selection stuff. Data is:", new)
-
 
         if self._had_error: return
         try:
@@ -561,6 +560,7 @@ class DataPlot:
                     names = [' NaN'] * len(nan_timestamps)
                     source = ColumnDataSource(data=dict(x=np.array(list(nan_timestamps)),
                                                         names=names, y=y_values))
+                                   
                     # plot as text with a fixed screen-space y offset
                     labels = LabelSet(x='x', y='y', text='names',
                                       y_units='screen', level='glyph', text_color=nan_color,
@@ -576,9 +576,7 @@ class DataPlot:
                 data_source = downsample.data_source
             else:
                 data_source = ColumnDataSource(data=data_set)
-            print("Setting up selection callback")
-#            data_source.selected.on_change('indicies', selection_change)
-            data_source.on_change('selected', selection_change)
+
 
 # data_source.selected.on_change('indices', selection)
 
@@ -595,12 +593,14 @@ class DataPlot:
         except (KeyError, IndexError, ValueError) as error:
             print(type(error), "("+self._data_name+"):", error)
             self._had_error = True
+        print("Setting up selection callback")
+        data_source.selected.on_change('selected', selection_change) 
 
     def add_circle(self, field_names, colors, legends):
-        """ add circles
+#       add circles; see add_graph for arguments description
 
-        see add_graph for arguments description
-        """
+
+        print("adding circles")
         if self._had_error: return
         try:
             p = self._p
@@ -609,6 +609,7 @@ class DataPlot:
             field_names_expanded = self._expand_field_names(field_names, data_set)
             data_source = ColumnDataSource(data=data_set)
 
+            data_source.selected.on_change('selected', selection_change) 
             for field_name, color, legend in zip(field_names_expanded, colors, legends):
                 p.circle(x='timestamp', y=field_name, source=data_source,
                          legend_label=legend, line_width=2, size=4, line_color=color,
