@@ -593,8 +593,8 @@ class DataPlot:
         except (KeyError, IndexError, ValueError) as error:
             print(type(error), "("+self._data_name+"):", error)
             self._had_error = True
-        print("Setting up selection callback")
-        data_source.selected.on_change('selected', selection_change) 
+        # print("Setting up selection callback")
+        # data_source.selected.on_change('selected', selection_change) 
 
     def add_circle(self, field_names, colors, legends):
 #       add circles; see add_graph for arguments description
@@ -609,7 +609,7 @@ class DataPlot:
             field_names_expanded = self._expand_field_names(field_names, data_set)
             data_source = ColumnDataSource(data=data_set)
 
-            data_source.selected.on_change('selected', selection_change) 
+            # data_source.selected.on_change('selected', selection_change) 
             for field_name, color, legend in zip(field_names_expanded, colors, legends):
                 p.circle(x='timestamp', y=field_name, source=data_source,
                          legend_label=legend, line_width=2, size=4, line_color=color,

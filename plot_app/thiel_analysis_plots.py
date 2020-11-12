@@ -60,6 +60,7 @@ read_file = True
 reverse_sim_data = False
 reverse_real_data = False
 new_data = True
+metric = 'x'
 
 sim_reverse_button = RadioButtonGroup(
         labels=["Sim Default", "Reversed"], active=0)
@@ -361,8 +362,8 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
     # plot positions
 
-    #    datatype = Select(value='XY', options=DEFAULT_FIELDS)
-        datatype = Select(value='XY', options=keys[0])
+
+        datatype = Select(value='x', options=keys[0])
 
         datatype.on_change('value', sim_change)
 
@@ -407,17 +408,18 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         plots = []
         plot_config['custom_tools'] = 'xpan,wheel_zoom,xbox_select,reset'
 
-        for axis in ['x', 'y', 'z']:
-            data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
-                                y_axis_label='[m]', title='Local Position '+axis.upper(),
-                                plot_height='small', x_range=x_range)
-            data_plot.add_graph([axis], colors2[0:1], [axis.upper()+' Estimated'], mark_nan=True)
-            data_plot.change_dataset('vehicle_local_position_setpoint')
-            data_plot.add_graph([axis], colors2[1:2], [axis.upper()+' Setpoint'],
-                                use_step_lines=True)
-            plot_flight_modes_background(data_plot, flight_mode_changes)
-            print("New plot name", data_plot)
-            if data_plot.finalize() is not None: plots.append(data_plot)
+        axis = metric
+
+        data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
+                            y_axis_label='[m]', title='Local Position '+axis.upper(),
+                            plot_height='small', x_range=x_range)
+        data_plot.add_graph([axis], colors2[0:1], [axis.upper()+' Estimated'], mark_nan=True)
+        data_plot.change_dataset('vehicle_local_position_setpoint')
+        data_plot.add_graph([axis], colors2[1:2], [axis.upper()+' Setpoint'],
+                            use_step_lines=True)
+        plot_flight_modes_background(data_plot, flight_mode_changes)
+        print("New plot name", data_plot)
+        if data_plot.finalize() is not None: plots.append(data_plot)
         
       
         simsource_static.selected.on_change('indices', simselection_change)
