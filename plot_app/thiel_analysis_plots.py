@@ -414,6 +414,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
                             y_axis_label='[m]', title='Local Position '+axis.upper(),
                             plot_height='small', x_range=x_range)
         data_plot.add_graph([axis], colors2[0:1], [axis.upper()+' Estimated'], mark_nan=True)
+        data_plot.add_graph('y', colors2[0:2], [' Y'], mark_nan=True)
         data_plot.change_dataset('vehicle_local_position_setpoint')
         data_plot.add_graph([axis], colors2[1:2], [axis.upper()+' Setpoint'],
                             use_step_lines=True)
