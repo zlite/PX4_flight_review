@@ -251,12 +251,12 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         #        print (data_keys)
             keys.append(data_keys)
 
-        simsource = dfdata
-        realsource = dfdata
+        datalog = get_data(simname, realname)
+     
 
-        t = realsource['timestamp']
-        x = realsource['x']
-        y = realsource['y']
+        # t = realsource['timestamp']
+        # x = realsource['x']
+        # y = realsource['y']
 
                 # set up plots
 
@@ -311,11 +311,11 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
         axis = metric
 
-        data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
-                            y_axis_label='[m]', title='Local Position '+axis.upper(),
+        data_plot = DataPlot(datalog, plot_config, 'vehicle_local_position',
+                            y_axis_label='[m]', title='Local Position ',
                             plot_height='small', x_range=x_range)
-        data_plot.add_graph([axis], colors2[0:1], [axis.upper()], mark_nan=True)
-        data_plot.add_graph('y', colors2[1:2], [' Y'], mark_nan=True)
+        data_plot.add_graph(datalog['simy'], colors2[0:1], ['Sim'], mark_nan=True)
+        data_plot.add_graph(datalog['realy'], colors2[1:2], ['Real'], mark_nan=True)
         plot_flight_modes_background(data_plot, flight_mode_changes)
         print("New plot name", data_plot)
         if data_plot.finalize() is not None: plots.append(data_plot)
