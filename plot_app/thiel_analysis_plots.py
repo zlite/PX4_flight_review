@@ -104,9 +104,9 @@ def get_data(simname,realname, metric):
     # real_mean = dfreal.y.mean()
     # mean_diff = sim_mean - real_mean 
     # data.realy = data.realy + mean_diff # normalize the two
-    data['sim'] = dfsim.metric
+    data['sim'] = dfsim.x
     data['simt'] = dfsim.timestamp
-    data['real'] = dfreal.metric
+    data['real'] = dfreal.x
     data['realt'] = dfreal.timestamp
     return data
 
@@ -131,8 +131,8 @@ def update(selected=None):
         realmin = round(min(data[['realy']].values)[0])
         reverse_real_data = False
     if new_data:
-        simsource.data = data[['simx', 'simy','realx','realy']]
-        realsource.data = data[['simx', 'simy','realx','realy']]
+        simsource.data = data[['sim', 'simt']]
+        realsource.data = data[['real','realt']]
         new_data = False
 
 
@@ -309,11 +309,11 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
         axis = metric
 
-        data_plot = DataPlot(datalog, plot_config, 'vehicle_local_position',
+        data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
                             y_axis_label='[m]', title='Local Position ',
                             plot_height='small', x_range=x_range)
-        data_plot.add_graph(datalog['simy'], colors2[0:1], ['Sim'], mark_nan=True)
-        data_plot.add_graph(datalog['realy'], colors2[1:2], ['Real'], mark_nan=True)
+        data_plot.add_graph('sim', colors2[0:1], ['Sim'], mark_nan=True)
+        data_plot.add_graph('real', colors2[1:2], ['Real'], mark_nan=True)
         plot_flight_modes_background(data_plot, flight_mode_changes)
         print("New plot name", data_plot)
         if data_plot.finalize() is not None: plots.append(data_plot)
