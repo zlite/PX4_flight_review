@@ -94,7 +94,7 @@ def load_data_real(realname):
 
 
 @lru_cache()
-def get_data(simname,realname):
+def get_data(simname,realname, metric):
     dfsim = load_data_sim(simname)
     dfreal = load_data_real(realname)
     data = pd.DataFrame() 
@@ -104,18 +104,16 @@ def get_data(simname,realname):
     # real_mean = dfreal.y.mean()
     # mean_diff = sim_mean - real_mean 
     # data.realy = data.realy + mean_diff # normalize the two
-    data['simy'] = dfsim.y
-    data['simx'] = dfsim.x
+    data['sim'] = dfsim.metric
     data['simt'] = dfsim.timestamp
-    data['realy'] = dfreal.y
-    data['realx'] = dfreal.x
+    data['real'] = dfreal.metric
     data['realt'] = dfreal.timestamp
     return data
 
 def update(selected=None):
     global read_file, reverse_sim_data, reverse_real_data, new_data, simsource, realsource, original_data, data, new_data
     if (read_file):
-        original_data = get_data(simname, realname)
+        original_data = get_data(simname, realname, metric)
         data = copy.deepcopy(original_data)
         read_file = False
     print("Sim offset", simx_offset)
@@ -251,7 +249,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         #        print (data_keys)
             keys.append(data_keys)
 
-        datalog = get_data(simname, realname)
+        datalog = get_data(simname, realname, metric)
      
 
         # t = realsource['timestamp']
@@ -260,8 +258,8 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
                 # set up plots
 
-        simsource = ColumnDataSource(data = dict(x=[],y=[]))
-        realsource = ColumnDataSource(data = dict(realx=[],realy=[]))
+        simsource = ColumnDataSource(data = dict(simt=[],sim=[]))
+        realsource = ColumnDataSource(data = dict(realt=[],real=[]))
 
 
         datatype = Select(value='x', options=keys[0])
