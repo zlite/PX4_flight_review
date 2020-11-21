@@ -240,6 +240,13 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
 
         cur_dataset = ulog.get_dataset('vehicle_local_position')
+        sim_data = cur_dataset.data['x']
+        pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
+        real_data = cur_dataset.data['y']
+        pd_real = pd.DataFrame(sim_data, columns = ['real'])
+        new_data = pd.concat([pd_sim, pd_real], axis=1)
+        new_data = new_data.dropna()   # remove missing values
+        print(new_data)
         dfdata = pd.DataFrame(cur_dataset.data)       
         keys = []
         data = ulog.data_list
@@ -248,8 +255,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
             data_keys.remove('timestamp')
             keys.append(data_keys)
 
-        df=pd.DataFrame(data)
-        print (df)
+
 
         datalog = get_data(simname, realname, metric)
      
