@@ -89,13 +89,13 @@ def load_data(filename):
 def get_data(simname,realname, metric):
     dfsim = load_data(simname)
     sim_data = dfsim.data[metric]
-    ulog.data['x'] = sim_data
     pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
+    sim_time = dfsim.data['timestamp']
+    pd_time = pd.DataFrame(sim_time, columns = ['time'])
     dfreal = load_data(realname)
     real_data = dfreal.data[metric]
-    ulog.data['y'] = real_data
     pd_real = pd.DataFrame(real_data, columns = ['real'])
-    new_data = pd.concat([pd_sim, pd_real], axis=1)
+    new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
     new_data = new_data.dropna()   # remove missing values
     return new_data
     # print(new_data)
@@ -317,36 +317,22 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         axis = metric
 
         # set up plots
+        print(datalog)
 
-        datasource = ColumnDataSource(datalog = dict(sim=[],real=[]))
-       
+        datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[]))
+        datasource.data = datalog
+
         realtools = 'xpan,wheel_zoom,xbox_select,reset'
         simtools = 'xpan,wheel_zoom,reset'
 
         ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
-        ts1.line('simx', 'simy', source=simsource, line_width=2)
-        ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selection_color="orange")
-
+        ts1.line('time','sim', source=datasource, line_width=2)
+        
         ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
         # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
         # ts2.x_range = ts1.x_range
-        ts2.line('realx', 'realy', source=realsource, line_width=2)
-        ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
+        ts2.line('time','real', source=datasource, line_width=2)
 
-        # print("Sim x =", datalog.data['x'])
-        # print("Real x =", datalog.data['y'])
-
-        # print("Ulog =", ulog)
-        # print("Datalog =", datalog)
-
-        # data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
-        #                     y_axis_label='[m]', title='Local Position ',
-        #                     plot_height='small', x_range=x_range)
-        # data_plot.add_graph(['x'], colors2[0:1], ['Sim'], mark_nan=True)
-        # data_plot.change_dataset('vehicle_local_position_setpoint')
-        # data_plot.add_graph(['y'], colors2[1:2], ['Real'], mark_nan=True)
-        # plot_flight_modes_background(data_plot, flight_mode_changes)
-        # if data_plot.finalize() is not None: plots.append(data_plot)
 
         
 
