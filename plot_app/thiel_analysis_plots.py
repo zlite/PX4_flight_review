@@ -76,39 +76,41 @@ stats = PreText(text='Thiel Coefficient', width=500)
 
 
 
-@lru_cache()
-def load_data_sim(simname):
-    fname = join(DATA_DIR, simname)
-    ulog = load_ulog_file(fname)
-    cur_dataset = ulog.get_dataset('vehicle_local_position')
-    dfsim = pd.DataFrame(cur_dataset.data)
-    return dfsim
 
 @lru_cache()
-def load_data_real(realname):
-    fname = join(DATA_DIR, realname)
+def load_data(filename):
+    fname = join(DATA_DIR, filename)
     ulog = load_ulog_file(fname)
     cur_dataset = ulog.get_dataset('vehicle_local_position')
-    dfreal = pd.DataFrame(cur_dataset.data)
-    return dfreal
+    return cur_dataset
 
 
 @lru_cache()
 def get_data(simname,realname, metric):
-    dfsim = load_data_sim(simname)
-    dfreal = load_data_real(realname)
-    data = pd.DataFrame() 
+    dfsim = load_data(simname)
+    sim_data = dfsim.data[metric]
+    ulog.data['x'] = sim_data
+    pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
+    dfreal = load_data(realname)
+    real_data = dfreal.data[metric]
+    ulog.data['y'] = real_data
+    pd_real = pd.DataFrame(real_data, columns = ['real'])
+    new_data = pd.concat([pd_sim, pd_real], axis=1)
+    new_data = new_data.dropna()   # remove missing values
+    return new_data
+    # print(new_data)
+    # dfdata = pd.DataFrame(cur_dataset.data) 
     # data = pd.concat([dfsim, dfreal], axis=1)
     # data = data.dropna()   # remove missing values
     # sim_mean = dfsim.y.mean()  # get the average
     # real_mean = dfreal.y.mean()
     # mean_diff = sim_mean - real_mean 
     # data.realy = data.realy + mean_diff # normalize the two
-    data['sim'] = dfsim.x
-    data['simt'] = dfsim.timestamp
-    data['real'] = dfreal.x
-    data['realt'] = dfreal.timestamp
-    return data
+    # data['sim'] = dfsim.x
+    # data['simt'] = dfsim.timestamp
+    # data['real'] = dfreal.x
+    # data['realt'] = dfreal.timestamp
+
 
 def update(selected=None):
     global read_file, reverse_sim_data, reverse_real_data, new_data, simsource, realsource, original_data, data, new_data
@@ -131,8 +133,8 @@ def update(selected=None):
         realmin = round(min(data[['realy']].values)[0])
         reverse_real_data = False
     if new_data:
-        simsource.data = data[['sim', 'simt']]
-        realsource.data = data[['real','realt']]
+        # simsource.data = data[['sim', 'simt']]
+        # realsource.data = data[['real','realt']]
         new_data = False
 
 
@@ -239,15 +241,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
 
 
-        cur_dataset = ulog.get_dataset('vehicle_local_position')
-        sim_data = cur_dataset.data['x']
-        pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
-        real_data = cur_dataset.data['y']
-        pd_real = pd.DataFrame(sim_data, columns = ['real'])
-        new_data = pd.concat([pd_sim, pd_real], axis=1)
-        new_data = new_data.dropna()   # remove missing values
-        print(new_data)
-        dfdata = pd.DataFrame(cur_dataset.data)       
+      
         keys = []
         data = ulog.data_list
         for d in data:
@@ -258,7 +252,11 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
 
         datalog = get_data(simname, realname, metric)
-     
+
+
+
+#        print(datalog)
+
         # data2 = data['x']
 
         # t = realsource['timestamp']
@@ -267,8 +265,8 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
                 # set up plots
 
-        simsource = ColumnDataSource(data = dict(simt=[],sim=[]))
-        realsource = ColumnDataSource(data = dict(realt=[],real=[]))
+        # simsource = ColumnDataSource(data = dict(simt=[],sim=[]))
+        # realsource = ColumnDataSource(data = dict(realt=[],real=[]))
 
 
         datatype = Select(value='x', options=keys[0])
@@ -318,15 +316,37 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
         axis = metric
 
+        # set up plots
 
-        data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
-                            y_axis_label='[m]', title='Local Position ',
-                            plot_height='small', x_range=x_range)
-        data_plot.add_graph('x', colors2[0:1], ['Sim'], mark_nan=True)
-        data_plot.change_dataset('vehicle_local_position_setpoint')
-        data_plot.add_graph('y', colors2[1:2], ['Real'], mark_nan=True)
-        plot_flight_modes_background(data_plot, flight_mode_changes)
-        if data_plot.finalize() is not None: plots.append(data_plot)
+        datasource = ColumnDataSource(datalog = dict(sim=[],real=[]))
+       
+        realtools = 'xpan,wheel_zoom,xbox_select,reset'
+        simtools = 'xpan,wheel_zoom,reset'
+
+        ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
+        ts1.line('simx', 'simy', source=simsource, line_width=2)
+        ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selection_color="orange")
+
+        ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
+        # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
+        # ts2.x_range = ts1.x_range
+        ts2.line('realx', 'realy', source=realsource, line_width=2)
+        ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
+
+        # print("Sim x =", datalog.data['x'])
+        # print("Real x =", datalog.data['y'])
+
+        # print("Ulog =", ulog)
+        # print("Datalog =", datalog)
+
+        # data_plot = DataPlot(data, plot_config, 'vehicle_local_position',
+        #                     y_axis_label='[m]', title='Local Position ',
+        #                     plot_height='small', x_range=x_range)
+        # data_plot.add_graph(['x'], colors2[0:1], ['Sim'], mark_nan=True)
+        # data_plot.change_dataset('vehicle_local_position_setpoint')
+        # data_plot.add_graph(['y'], colors2[1:2], ['Real'], mark_nan=True)
+        # plot_flight_modes_background(data_plot, flight_mode_changes)
+        # if data_plot.finalize() is not None: plots.append(data_plot)
 
         
 
