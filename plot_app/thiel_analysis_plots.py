@@ -286,36 +286,6 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
         #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
-      
-        x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
-        x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
-        flight_mode_changes = get_flight_mode_changes(ulog)
-
-        # set up layout
-        widgets = column(datatype,stats)
-        sim_button = column(sim_reverse_button)
-        real_button = column(real_reverse_button)
-        main_row = row(widgets)
-        series = column(sim_button, real_button)
-        layout = column(main_row, series)
-
-        # initialize
-        update()
-        curdoc().add_root(intro_text)
-
-        curdoc().add_root(sim_upload_text)
-        curdoc().add_root(file_input)
-        curdoc().add_root(real_upload_text)
-        curdoc().add_root(file_input2)
-        curdoc().add_root(choose_field_text)    
-        curdoc().add_root(layout)
-        curdoc().title = "Flight data"
-
-        plots = []
-        plot_config['custom_tools'] = 'xpan,wheel_zoom,xbox_select,reset'
-
-        axis = metric
-
         # set up plots
         print(datalog)
 
@@ -332,6 +302,39 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
         # ts2.x_range = ts1.x_range
         ts2.line('time','real', source=datasource, line_width=2)
+
+        x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
+        x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
+        flight_mode_changes = get_flight_mode_changes(ulog)
+
+        # set up layout
+        widgets = column(datatype,stats)
+        sim_button = column(sim_reverse_button)
+        real_button = column(real_reverse_button)
+        main_row = row(widgets)
+        series = column(ts1, sim_button, ts2, real_button)
+        layout = column(main_row, series)
+
+        # initialize
+
+
+        update()
+        curdoc().add_root(intro_text)
+
+        curdoc().add_root(sim_upload_text)
+        curdoc().add_root(file_input)
+        curdoc().add_root(real_upload_text)
+        curdoc().add_root(file_input2)
+        curdoc().add_root(choose_field_text)    
+        curdoc().add_root(layout)
+        curdoc().title = "Flight data"
+
+        plots = []
+        plot_config['custom_tools'] = 'xpan,wheel_zoom,xbox_select,reset'
+
+        axis = metric
+
+
 
 
         
