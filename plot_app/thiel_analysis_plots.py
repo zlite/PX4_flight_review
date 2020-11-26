@@ -113,10 +113,10 @@ def get_data(simname,realname, metric):
 
 
 def update(selected=None):
-    global read_file, reverse_sim_data, reverse_real_data, new_data, simsource, realsource, original_data, data, new_data
+    global read_file, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
     if (read_file):
         original_data = get_data(simname, realname, metric)
-        data = copy.deepcopy(original_data)
+        datalog = copy.deepcopy(original_data)
         read_file = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
@@ -124,15 +124,16 @@ def update(selected=None):
         datalog[['sim']] = sim_polarity * original_data['sim']  # reverse data if necessary
         simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
         simmin = round(min(datalog[['sim']].values)[0])
+        datasource.data = datalog
         reverse_sim_data = False
     if reverse_real_data:
         datalog['real'] = real_polarity * original_data['real']
         realmax = round(max(datalog[['real']].values)[0])
-        realmin = round(min(data[['real']].values)[0])
+        realmin = round(min(datalog[['real']].values)[0])
+        datasource.data = datalog
         reverse_real_data = False
     if new_data:
-        # simsource.data = data[['sim', 'simt']]
-        # realsource.data = data[['real','realt']]
+        datasource.data = datalog
         new_data = False
 
 
@@ -204,7 +205,7 @@ def sim_change(attrname, old, new):
     update()   
 
 def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main_plots):
-    global datalog, original_data
+    global datalog, original_data,datasource
     """
     get all bokeh plots shown on the Thiel analysis page
     :return: list of bokeh plots
