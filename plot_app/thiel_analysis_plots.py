@@ -121,16 +121,14 @@ def update(selected=None):
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
     if reverse_sim_data:
-        data[['simy']] = sim_polarity * original_data[['simy']]  # reverse data if necessary
-        simsource.data = data
-        simmax = round(max(data[['simy']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
-        simmin = round(min(data[['simy']].values)[0])
+        datalog[['sim']] = sim_polarity * original_data['sim']  # reverse data if necessary
+        simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
+        simmin = round(min(datalog[['sim']].values)[0])
         reverse_sim_data = False
     if reverse_real_data:
-        data[['realy']] = real_polarity * original_data[['realy']]
-        realsource.data = data
-        realmax = round(max(data[['realy']].values)[0])
-        realmin = round(min(data[['realy']].values)[0])
+        datalog['real'] = real_polarity * original_data['real']
+        realmax = round(max(datalog[['real']].values)[0])
+        realmin = round(min(data[['real']].values)[0])
         reverse_real_data = False
     if new_data:
         # simsource.data = data[['sim', 'simt']]
@@ -206,7 +204,7 @@ def sim_change(attrname, old, new):
     update()   
 
 def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main_plots):
-    global dfdata, simsource, realsource, usimsource, x, y
+    global datalog, original_data
     """
     get all bokeh plots shown on the Thiel analysis page
     :return: list of bokeh plots
@@ -252,6 +250,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
 
         datalog = get_data(simname, realname, metric)
+        original_data = copy.deepcopy(datalog)
 
 
 
@@ -295,13 +294,10 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         realtools = 'xpan,wheel_zoom,xbox_select,reset'
         simtools = 'xpan,wheel_zoom,reset'
 
-        ts1 = figure(plot_width=900, plot_height=200, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
-        ts1.line('time','sim', source=datasource, line_width=2)
+        ts1 = figure(plot_width=1200, plot_height=400, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
+        ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data")
+        ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data")
         
-        ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
-        # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
-        # ts2.x_range = ts1.x_range
-        ts2.line('time','real', source=datasource, line_width=2)
 
         x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
         x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
@@ -312,7 +308,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         sim_button = column(sim_reverse_button)
         real_button = column(real_reverse_button)
         main_row = row(widgets)
-        series = column(ts1, sim_button, ts2, real_button)
+        series = column(ts1, sim_button, real_button)
         layout = column(main_row, series)
 
         # initialize
@@ -330,33 +326,5 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         curdoc().title = "Flight data"
 
         plots = []
-        plot_config['custom_tools'] = 'xpan,wheel_zoom,xbox_select,reset'
 
-        axis = metric
-
-
-
-
-        
-
-    jinja_plot_data = []
-    for i in range(len(plots)):
-        if plots[i] is None:
-            plots[i] = column(param_changes_button, width=int(plot_width * 0.99))
-        if isinstance(plots[i], DataPlot):
-            if plots[i].param_change_label is not None:
-                param_change_labels.append(plots[i].param_change_label)
-
-            plot_title = plots[i].title
-            plots[i] = plots[i].bokeh_plot
-
-            fragment = 'Nav-'+plot_title.replace(' ', '-') \
-                .replace('&', '_').replace('(', '').replace(')', '')
-            jinja_plot_data.append({
-                'model_id': plots[i].ref['id'],
-                'fragment': fragment,
-                'title': plot_title
-                })
-
-    curdoc().template_variables['plots'] = jinja_plot_data
     return plots

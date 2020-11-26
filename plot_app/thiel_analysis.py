@@ -117,8 +117,8 @@ ts1.circle('simx', 'simy', size=1, source=simsource_static, color=None, selectio
 ts2 = figure(plot_width=900, plot_height=200, tools=simtools, x_axis_type='linear')
 # to adjust ranges, add something like this: x_range=Range1d(0, 1000), y_range = None,
 # ts2.x_range = ts1.x_range
-ts2.line('realx', 'realy', source=realsource, line_width=2)
-ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange")
+ts2.line('realx', 'realy', source=realsource, line_width=2, legend_label="Real data")
+ts2.circle('realx', 'realy', size=1, source=realsource_static, color="orange",legend_label="Simulated data")
 
 # set up callbacks
 
