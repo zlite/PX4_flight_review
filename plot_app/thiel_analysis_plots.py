@@ -4,6 +4,7 @@
 # TO DO: change all the data to the form dfsim.metric
 
 
+from os import read
 import px4tools
 import numpy as np
 import math
@@ -117,6 +118,7 @@ def update(selected=None):
     if (read_file):
         original_data = get_data(simname, realname, metric)
         datalog = copy.deepcopy(original_data)
+        datasource.data = datalog
         read_file = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
@@ -195,13 +197,11 @@ def change_real_scale(shift):
     new_data = True
     update()
 
-
-
 def sim_change(attrname, old, new):
-    global metric
+    global metric, read_file
     print("Sim change:", new)
-    print(dfdata[new])
     metric = new
+    read_file = True
     update()   
 
 def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main_plots):
