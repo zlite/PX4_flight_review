@@ -80,7 +80,7 @@ stats = PreText(text='Thiel Coefficient', width=500)
 # datatype = Select(value='XY', options=DEFAULT_FIELDS)
 
 
-@lru_cache()
+# @lru_cache()
 def load_data(filename):
     fname = join(DATA_DIR, filename)
     ulog = load_ulog_file(fname)
@@ -88,20 +88,21 @@ def load_data(filename):
     return cur_dataset
 
 
-@lru_cache()
+# @lru_cache()
 def get_data(simname,realname, metric):
     global new_real, new_sim, read_file_local, realfile, simfile
-    if read_file_local:
+    print("Now in get_data")
+    dfsim = load_data(simname)
+    dfreal = load_data(realname)
+    if read_file_local:    # replace the datalogs with local ones
         if new_real:
+            print("Loading in a new real log")
             dfreal = realfile
             new_real = False
         if new_sim:
+            print("Loading in a new sim log")
             dfsim = simfile
             new_sim = False
-        read_file_local = False
-    else:
-        dfsim = load_data(simname)
-        dfreal = load_data(realname)
  
     sim_data = dfsim.data[metric]
     pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
@@ -129,10 +130,12 @@ def get_data(simname,realname, metric):
 def update(selected=None):
     global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
     if (read_file or read_file_local):
+        print("Fetching new data", simname, realname, metric)
         original_data = get_data(simname, realname, metric)
         datalog = copy.deepcopy(original_data)
         datasource.data = datalog
         read_file = False
+        read_file_local = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
     if reverse_sim_data:
@@ -154,12 +157,18 @@ def update(selected=None):
 
 def upload_new_data_real(attr, old, new):
     global read_file_local, new_real, realfile, original_data
+    print("one")
     read_file_local = True
     new_real = True
+    print("two")
     decoded = base64.b64decode(new)
+    print("three")
     tempfile = io.BytesIO(decoded)
+    print("four")
     tempfile = ULog(tempfile)
+    print("five")
     realfile = tempfile.get_dataset('vehicle_local_position')
+    print("Uploading new real file")
     update()
 
 def upload_new_data_sim(attr, old, new):
@@ -170,6 +179,7 @@ def upload_new_data_sim(attr, old, new):
     tempfile = io.BytesIO(decoded)
     tempfile = ULog(tempfile)
     simfile = tempfile.get_dataset('vehicle_local_position')
+    print("Uploading new sim file")
     update()
 
 def update_stats(data):
@@ -238,7 +248,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
 
     sim = False
-    if link_to_main_plots.find("sim") is not -1:
+    if (link_to_main_plots.find("sim") != -1):
         temp_link_to_main_plots = link_to_main_plots.replace('sim','')
         sim = True
 
