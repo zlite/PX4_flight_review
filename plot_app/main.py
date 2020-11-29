@@ -105,7 +105,7 @@ else:
             log_args = GET_arguments['log']
             if len(log_args) == 1:
                 templog_id = str(log_args[0], 'utf-8')
-                if templog_id.find("thiel") is not -1:
+                if (templog_id.find("thiel") != -1):
                     log_id = templog_id.replace('thiel','')
                     sim = True
                     print("sim is true. New log ID=", log_id)

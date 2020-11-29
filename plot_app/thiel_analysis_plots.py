@@ -12,6 +12,7 @@ import io
 import os
 import sys
 import errno
+import base64
 
 #import thiel_analysis
 from bokeh.io import curdoc,output_file, show
@@ -61,6 +62,9 @@ read_file = True
 reverse_sim_data = False
 reverse_real_data = False
 new_data = True
+read_file_local = False
+new_real = False
+new_sim = False
 metric = 'x'
 
 sim_reverse_button = RadioButtonGroup(
@@ -74,8 +78,6 @@ real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
 stats = PreText(text='Thiel Coefficient', width=500)
 # datatype = Select(value='XY', options=DEFAULT_FIELDS)
-
-
 
 
 @lru_cache()
@@ -114,12 +116,17 @@ def get_data(simname,realname, metric):
 
 
 def update(selected=None):
-    global read_file, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
+    global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
     if (read_file):
         original_data = get_data(simname, realname, metric)
         datalog = copy.deepcopy(original_data)
         datasource.data = datalog
         read_file = False
+    if (read_file_local):
+        original_data = get_data(simname, realname, metric)
+        datalog = copy.deepcopy(original_data)
+        datasource.data = datalog
+        read_file_local = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
     if reverse_sim_data:
@@ -139,16 +146,22 @@ def update(selected=None):
         new_data = False
 
 
-def upload_new_data_sim(attr, old, new):
-    global simname
-    decoded = b64decode(new)
-    simname = io.BytesIO(decoded)
+def upload_new_data_real(attr, old, new):
+    global read_file_local, new_real, realfile
+    read_file_local = True
+    new_real = True
+    decoded = base64.b64decode(new)
+    tempfile = io.BytesIO(decoded)
+    realfile = ULog(tempfile)
     update()
 
-def upload_new_data_real(attr, old, new):
-    global realname
-    decoded = b64decode(new)
-    realname = io.BytesIO(decoded)
+def upload_new_data_sim(attr, old, new):
+    global read_file_local, new_sim, simfile
+    read_file_local = True
+    new_sim = True
+    decoded = base64.b64decode(new)
+    tempfile = io.BytesIO(decoded)
+    simfile = ULog(tempfile)
     update()
 
 def update_stats(data):
@@ -276,6 +289,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
     
 
         file_input = FileInput(accept=".ulg")
+ #       file_input.on_change('filename', upload_new_data_sim)  # this is if you just want the filename (but not path)
         file_input.on_change('value', upload_new_data_sim)
         file_input2 = FileInput(accept=".ulg")
         file_input2.on_change('value', upload_new_data_real)
@@ -287,15 +301,14 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
         # set up plots
-        print(datalog)
+        # print(datalog)
 
         datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[]))
         datasource.data = datalog
 
-        realtools = 'xpan,wheel_zoom,xbox_select,reset'
-        simtools = 'xpan,wheel_zoom,reset'
-
-        ts1 = figure(plot_width=1200, plot_height=400, tools=realtools, x_axis_type='linear', active_drag="xbox_select")
+        tools = 'xpan,wheel_zoom,reset'
+        
+        ts1 = figure(plot_width=1200, plot_height=400, tools=tools, x_axis_type='linear')
         ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data")
         ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data")
         
