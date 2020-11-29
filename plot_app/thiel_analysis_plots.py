@@ -90,12 +90,23 @@ def load_data(filename):
 
 @lru_cache()
 def get_data(simname,realname, metric):
-    dfsim = load_data(simname)
+    global new_real, new_sim, read_file_local, realfile, simfile
+    if read_file_local:
+        if new_real:
+            dfreal = realfile
+            new_real = False
+        if new_sim:
+            dfsim = simfile
+            new_sim = False
+        read_file_local = False
+    else:
+        dfsim = load_data(simname)
+        dfreal = load_data(realname)
+ 
     sim_data = dfsim.data[metric]
     pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
     sim_time = dfsim.data['timestamp']
     pd_time = pd.DataFrame(sim_time, columns = ['time'])
-    dfreal = load_data(realname)
     real_data = dfreal.data[metric]
     pd_real = pd.DataFrame(real_data, columns = ['real'])
     new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
@@ -117,16 +128,11 @@ def get_data(simname,realname, metric):
 
 def update(selected=None):
     global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
-    if (read_file):
+    if (read_file or read_file_local):
         original_data = get_data(simname, realname, metric)
         datalog = copy.deepcopy(original_data)
         datasource.data = datalog
         read_file = False
-    if (read_file_local):
-        original_data = get_data(simname, realname, metric)
-        datalog = copy.deepcopy(original_data)
-        datasource.data = datalog
-        read_file_local = False
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
     if reverse_sim_data:
@@ -147,12 +153,13 @@ def update(selected=None):
 
 
 def upload_new_data_real(attr, old, new):
-    global read_file_local, new_real, realfile
+    global read_file_local, new_real, realfile, original_data
     read_file_local = True
     new_real = True
     decoded = base64.b64decode(new)
     tempfile = io.BytesIO(decoded)
-    realfile = ULog(tempfile)
+    tempfile = ULog(tempfile)
+    realfile = tempfile.get_dataset('vehicle_local_position')
     update()
 
 def upload_new_data_sim(attr, old, new):
@@ -161,7 +168,8 @@ def upload_new_data_sim(attr, old, new):
     new_sim = True
     decoded = base64.b64decode(new)
     tempfile = io.BytesIO(decoded)
-    simfile = ULog(tempfile)
+    tempfile = ULog(tempfile)
+    simfile = tempfile.get_dataset('vehicle_local_position')
     update()
 
 def update_stats(data):
