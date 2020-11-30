@@ -204,8 +204,7 @@ else:
                     print("Sending a sim file back to Thiel")
                 else:
                     link_to_main_plots = '?log='+log_id
-                plots = get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data,
-                                               link_to_main_plots)
+                    get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main_plots)
                 title = 'Thiel Review - '+px4_ulog.get_mav_type()
 
             except Exception as error:

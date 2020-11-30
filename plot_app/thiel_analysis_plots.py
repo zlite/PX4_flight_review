@@ -1,7 +1,6 @@
 """ This contains Thiel analysis plots """
 
 
-# TO DO: change all the data to the form dfsim.metric
 
 
 from os import read
@@ -267,7 +266,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         #     'Thiel Analysis') + page_intro
         curdoc().template_variables['title_html'] = get_heading_html(
             ulog, px4_ulog, db_data, None,
-            additional_links=[('Open Main Plots', link_to_main_plots,),("Open Matching Simulation Log", '/browse?search=sim')])
+            additional_links=[('Open Main Plots', link_to_main_plots,),("Open Matching Simulation Log", '/browse2?search=sim')])
 
 
 
