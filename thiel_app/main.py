@@ -12,6 +12,7 @@ import os
 import sys
 import errno
 import base64
+from db_entry import *
 
 #import thiel_analysis
 from bokeh.io import curdoc,output_file, show
@@ -234,128 +235,76 @@ def sim_change(attrname, old, new):
     read_file = True
     update()   
 
-def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main_plots):
+def get_thiel_analysis_plots(ulog):
     global datalog, original_data,datasource
-    """
-    get all bokeh plots shown on the Thiel analysis page
-    :return: list of bokeh plots
-    """
-    def _resample(time_array, data, desired_time):
-        """ resample data at a given time to a vector of desired_time """
-        data_f = interp1d(time_array, data, fill_value='extrapolate')
-        return data_f(desired_time)
 
+    # curdoc().template_variables['title_html'] = get_heading_html(
+    #     ulog, px4_ulog,db_data, None, [('Open Main Plots', link_to_main_plots,)],
+    #     'Thiel Analysis') + page_intro
+    # curdoc().template_variables['title_html'] = get_heading_html(
+    #     None, None, db_data, None,
+    #     additional_links=[("Load Simulation Log", '/browse2?search=sim'),("Load Real Log", '/browse2?search=real')])
+    additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>"
 
-    sim = False
-    if (link_to_main_plots.find("sim") != -1):
-        temp_link_to_main_plots = link_to_main_plots.replace('sim','')
-        sim = True
+    curdoc().template_variables['title_html'] = "<table width='100%'><tr><td><h3>" + "</h3></td><td align='left'>" + additional_links+"</td></tr></table>"
+    
+    keys = []
+    data = ulog.data_list
+    for d in data:
+        data_keys = [f.field_name for f in d.field_data]
+        data_keys.remove('timestamp')
+        keys.append(data_keys)
 
+    datalog = get_data(simname, realname, metric)
+    original_data = copy.deepcopy(datalog)
 
-    if sim:
-        print("do some sim stuff")
-    else:
-        print("do regular stuff")
-        page_intro = """
-    <p>
-    This page shows the correspondance between a simulated and a real flight log.
-    </p>
-        """
-        # curdoc().template_variables['title_html'] = get_heading_html(
-        #     ulog, px4_ulog,db_data, None, [('Open Main Plots', link_to_main_plots,)],
-        #     'Thiel Analysis') + page_intro
-        curdoc().template_variables['title_html'] = get_heading_html(
-            ulog, px4_ulog, db_data, None,
-            additional_links=[("Load Simulation Log", '/browse2?search=sim'),("Load Real Log", '/browse2?search=real')])
+    datatype = Select(value='x', options=keys[3])
 
+    datatype.on_change('value', sim_change)
 
+    intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
+    choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
 
-      
-        keys = []
-        data = ulog.data_list
-        for d in data:
-            data_keys = [f.field_name for f in d.field_data]
-            data_keys.remove('timestamp')
-            keys.append(data_keys)
+    datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[]))
+    datasource.data = datalog
 
-
-
-        datalog = get_data(simname, realname, metric)
-        original_data = copy.deepcopy(datalog)
-
-
-
-#        print(datalog)
-
-        # data2 = data['x']
-
-        # t = realsource['timestamp']
-        # x = realsource['x']
-        # y = realsource['y']
-
-                # set up plots
-
-        # simsource = ColumnDataSource(data = dict(simt=[],sim=[]))
-        # realsource = ColumnDataSource(data = dict(realt=[],real=[]))
-
-
-        datatype = Select(value='x', options=keys[0])
-
-        datatype.on_change('value', sim_change)
-
+    tools = 'xpan,wheel_zoom,reset'
+    
+    ts1 = figure(plot_width=1200, plot_height=400, tools=tools, x_axis_type='linear')
+    ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data")
+    ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data")
     
 
-#         file_input = FileInput(accept=".ulg")
-#  #       file_input.on_change('filename', upload_new_data_sim)  # this is if you just want the filename (but not path)
-#         file_input.on_change('value', upload_new_data_sim)
-#         file_input2 = FileInput(accept=".ulg")
-#         file_input2.on_change('value', upload_new_data_real)
+    x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
+    x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
+    flight_mode_changes = get_flight_mode_changes(ulog)
 
-        intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
-        # sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
-        # real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
-        choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
-        #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
+    # set up layout
+    widgets = column(datatype,stats)
+    sim_button = column(sim_reverse_button)
+    real_button = column(real_reverse_button)
+    main_row = row(widgets)
+    series = column(ts1, sim_button, real_button)
+    layout = column(main_row, series)
 
-        # set up plots
-        # print(datalog)
-
-        datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[]))
-        datasource.data = datalog
-
-        tools = 'xpan,wheel_zoom,reset'
-        
-        ts1 = figure(plot_width=1200, plot_height=400, tools=tools, x_axis_type='linear')
-        ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data")
-        ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data")
-        
-
-        x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
-        x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
-        flight_mode_changes = get_flight_mode_changes(ulog)
-
-        # set up layout
-        widgets = column(datatype,stats)
-        sim_button = column(sim_reverse_button)
-        real_button = column(real_reverse_button)
-        main_row = row(widgets)
-        series = column(ts1, sim_button, real_button)
-        layout = column(main_row, series)
-
-        # initialize
+    # initialize
 
 
-        update()
-        curdoc().add_root(intro_text)
+    update()
+    curdoc().add_root(intro_text)
 
-        # curdoc().add_root(sim_upload_text)
-        # curdoc().add_root(file_input)
-        # curdoc().add_root(real_upload_text)
-        # curdoc().add_root(file_input2)
-        curdoc().add_root(choose_field_text)    
-        curdoc().add_root(layout)
-        curdoc().title = "Flight data"
+    # curdoc().add_root(sim_upload_text)
+    # curdoc().add_root(file_input)
+    # curdoc().add_root(real_upload_text)
+    # curdoc().add_root(file_input2)
+    curdoc().add_root(choose_field_text)    
+    curdoc().add_root(layout)
+    curdoc().title = "Flight data"
 
-        plots = []
+    #     plots = []
 
-    return plots
+    # return plots
+print("Now starting Thiel app")
+fname = join(DATA_DIR, simname)
+ulog = load_ulog_file(fname)   # start with a random placeholder sim dataset
+get_thiel_analysis_plots(ulog)
