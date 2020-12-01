@@ -68,6 +68,7 @@ colors8 = [colors3[0], colors3[1], colors3[2], '#333333', '#999999', '#e58C33',
 color_gray = '#464646'
 
 plot_config['mission_setpoint_color'] = colors8[5]
+plot_config['custom_tools'] = "pan,wheel_zoom,box_zoom,reset,save"
 
 
 def get_domain_name():

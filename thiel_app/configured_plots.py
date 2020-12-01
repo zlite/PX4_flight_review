@@ -11,11 +11,7 @@ from config import *
 from helper import *
 from leaflet import ulog_to_polyline
 from plotting import *
-from plotted_tables import (
-    get_logged_messages, get_changed_parameters,
-    get_info_table_html, get_heading_html, get_error_labels_html,
-    get_hardfault_html, get_corrupt_log_html
-    )
+from plotted_tables import *
 
 #pylint: disable=cell-var-from-loop, undefined-loop-variable,
 #pylint: disable=consider-using-enumerate,too-many-statements
@@ -23,7 +19,7 @@ from plotted_tables import (
 
 
 def generate_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_3d_page,
-                   link_to_pid_analysis_page):
+                   link_to_pid_analysis_page, link_to_thiel_analysis_page):
     """ create a list of bokeh plots (and widgets) to show """
 
     plots = []
@@ -97,7 +93,8 @@ def generate_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_3d_page,
     # Heading
     curdoc().template_variables['title_html'] = get_heading_html(
         ulog, px4_ulog, db_data, link_to_3d_page,
-        additional_links=[("Open PID Analysis", link_to_pid_analysis_page)])
+        additional_links=[("Open PID Analysis", link_to_pid_analysis_page),("Open Thiel Analysis", link_to_thiel_analysis_page)])
+
 
     # info text on top (logging duration, max speed, ...)
     curdoc().template_variables['info_table_html'] = \

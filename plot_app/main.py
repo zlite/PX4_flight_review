@@ -98,6 +98,7 @@ else:
     error_message = ''
     log_id = ''
     sim = False
+    plots = []
 
     try:
 

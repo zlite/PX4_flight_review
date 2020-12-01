@@ -51,8 +51,8 @@ DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
 STANDARD_TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
 
-simname = 'airtonomysim.ulg'
-realname = 'airtonomyreal.ulg'
+simname = 'faasimulated.ulg'
+realname = 'faareal.ulg'
 sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
 simx_offset = 0
@@ -79,7 +79,7 @@ stats = PreText(text='Thiel Coefficient', width=500)
 # datatype = Select(value='XY', options=DEFAULT_FIELDS)
 
 
-# @lru_cache()
+@lru_cache()
 def load_data(filename):
     fname = join(DATA_DIR, filename)
     ulog = load_ulog_file(fname)
@@ -87,7 +87,7 @@ def load_data(filename):
     return cur_dataset
 
 
-# @lru_cache()
+@lru_cache()
 def get_data(simname,realname, metric):
     global new_real, new_sim, read_file_local, realfile, simfile
     print("Now in get_data")
@@ -266,7 +266,7 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         #     'Thiel Analysis') + page_intro
         curdoc().template_variables['title_html'] = get_heading_html(
             ulog, px4_ulog, db_data, None,
-            additional_links=[('Open Main Plots', link_to_main_plots,),("Open Matching Simulation Log", '/browse2?search=sim')])
+            additional_links=[("Load Simulation Log", '/browse2?search=sim'),("Load Real Log", '/browse2?search=real')])
 
 
 
@@ -305,15 +305,15 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
 
     
 
-        file_input = FileInput(accept=".ulg")
- #       file_input.on_change('filename', upload_new_data_sim)  # this is if you just want the filename (but not path)
-        file_input.on_change('value', upload_new_data_sim)
-        file_input2 = FileInput(accept=".ulg")
-        file_input2.on_change('value', upload_new_data_real)
+#         file_input = FileInput(accept=".ulg")
+#  #       file_input.on_change('filename', upload_new_data_sim)  # this is if you just want the filename (but not path)
+#         file_input.on_change('value', upload_new_data_sim)
+#         file_input2 = FileInput(accept=".ulg")
+#         file_input2.on_change('value', upload_new_data_real)
 
         intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
-        sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
-        real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
+        # sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
+        # real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
         choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
         #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
 
@@ -348,10 +348,10 @@ def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main
         update()
         curdoc().add_root(intro_text)
 
-        curdoc().add_root(sim_upload_text)
-        curdoc().add_root(file_input)
-        curdoc().add_root(real_upload_text)
-        curdoc().add_root(file_input2)
+        # curdoc().add_root(sim_upload_text)
+        # curdoc().add_root(file_input)
+        # curdoc().add_root(real_upload_text)
+        # curdoc().add_root(file_input2)
         curdoc().add_root(choose_field_text)    
         curdoc().add_root(layout)
         curdoc().title = "Flight data"

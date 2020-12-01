@@ -59,6 +59,7 @@ def get_heading_html(ulog, px4_ulog, db_data, link_to_3d_page,
 
     if link_to_3d_page is not None and \
         any(elem.name == 'vehicle_global_position' for elem in ulog.data_list):
+
         link_to_3d = ("<a class='btn btn-outline-primary' href='"+
                       link_to_3d_page+"'>Open 3D View</a>")
     else:
@@ -75,6 +76,7 @@ def get_heading_html(ulog, px4_ulog, db_data, link_to_3d_page,
     title_html = ("<table width='100%'><tr><td><h3>"+sys_name + px4_ulog.get_mav_type()+
                   title_suffix+"</h3></td><td align='right'>" + link_to_3d +
                   added_links+"</td></tr></table>")
+                  
     if db_data.description != '':
         title_html += "<h5>"+db_data.description+"</h5>"
     return title_html

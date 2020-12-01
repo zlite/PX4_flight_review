@@ -91,6 +91,8 @@ parser.add_argument('--3d', dest='threed', action='store_true',
                     help='Open 3D page (only if --file is provided)')
 parser.add_argument('--pid-analysis', dest='pid_analysis', action='store_true',
                     help='Open PID analysis page (only if --file is provided)')
+parser.add_argument('--thiel', dest='thiel', action='store_true',
+                    help='Open Thiel analysis page (only if --file is provided)')                    
 parser.add_argument('--num-procs', dest='numprocs', type=int, action='store',
                     help="""Number of worker processes. Default to 1.
                     0 will autodetect number of cores""",
@@ -132,6 +134,8 @@ server_kwargs['http_server_kwargs'] = {'max_buffer_size': 300 * 1024 * 1024}
 show_ulog_file = False
 show_3d_page = False
 show_pid_analysis_page = False
+show_thiel = False
+if args.thiel: show_thiel = True
 if args.file is not None:
     ulog_file = os.path.abspath(args.file)
     show_ulog_file = True
@@ -147,6 +151,7 @@ if args.show:
     sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app'))
     handler = DirectoryHandler(filename=main_path)
     applications['/plot_app'] = Application(handler)
+    applications['/thiel_app'] = Application(handler)
 
 
 set_log_id_is_filename(show_ulog_file)
@@ -196,6 +201,8 @@ if args.show:
                 server.show('/3d?log='+ulog_file)
             elif show_pid_analysis_page:
                 server.show('/plot_app?plots=pid_analysis&log='+ulog_file)
+            elif show_thiel:
+                server.show('/thiel_app')
             else:
                 server.show('/plot_app?log='+ulog_file)
         else:

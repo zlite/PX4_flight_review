@@ -1,258 +1,361 @@
-""" module that gets executed on a plotting page request """
+""" This contains Thiel analysis plots """
 
-from timeit import default_timer as timer
-import sys
-import sqlite3
-import traceback
+
+
+
+from os import read
+import px4tools
+import numpy as np
+import math
+import io
 import os
+import sys
+import errno
+import base64
 
-from html import escape
-
-from bokeh.io import curdoc
-from bokeh.layouts import column
+#import thiel_analysis
+from bokeh.io import curdoc,output_file, show
 from bokeh.models.widgets import Div
+from bokeh.layouts import column
+from scipy.interpolate import interp1d
 
-from helper import *
+import plotting
+from plotted_tables import *
+from configured_plots import *
+from os.path import dirname, join
+
 from config import *
-from colors import HTML_color_to_RGB
-from db_entry import *
-from configured_plots import generate_plots
-from pid_analysis_plots import get_pid_analysis_plots
-from statistics_plots import StatisticsPlots
+from helper import *
+from leaflet import ulog_to_polyline
+from bokeh.models import CheckboxGroup
+from bokeh.models import RadioButtonGroup
+from bokeh.models.widgets import FileInput
+from bokeh.models.widgets import Paragraph
 
-#pylint: disable=invalid-name, redefined-outer-name
+import pandas as pd
+import argparse
 
-
-GET_arguments = curdoc().session_context.request.arguments
-if GET_arguments is not None and 'stats' in GET_arguments:
-
-    # show the statistics page
-
-    plots = []
-    start_time = timer()
-
-    statistics = StatisticsPlots(plot_config, debug_verbose_output())
-
-    print_timing("Data Loading Stats", start_time)
-    start_time = timer()
+from bokeh.layouts import column, row
+from bokeh.models import ColumnDataSource, PreText, Select
+from bokeh.plotting import figure
+from bokeh.server.server import Server
+from bokeh.themes import Theme
+from bokeh.application.handlers import DirectoryHandler
 
 
-    # title
-    div = Div(text="<h3>Statistics</h3>")
-    plots.append(column(div))
+#pylint: disable=cell-var-from-loop, undefined-loop-variable,
 
-    div = Div(text="<h4>All Logs</h4>")
-    plots.append(column(div))
+DATA_DIR = join(dirname(__file__), 'datalogs')
 
-    p = statistics.plot_log_upload_statistics([colors8[0], colors8[1], colors8[3],
-                                               colors8[4], colors8[5]])
-    plots.append(p)
-    div_info = Div(text="Number of Continous Integration (Simulation Tests) Logs: %i<br />" \
-            "Total Number of Logs on the Server: %i" %
-                   (statistics.num_logs_ci(), statistics.num_logs_total()))
-    plots.append(column(div_info))
+DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
-    div = Div(text="<br/><h4>Flight Report Logs "
-              "<small class='text-muted'>(Public Logs only)</small></h4>")
-    div_info = Div(text="Total Flight Hours over all versions: %.1f"%
-                   statistics.total_public_flight_duration())
-    div_info_release = Div(text="Total Flight Hours for the latest major" \
-            " release %s (starting from the first RC candidate): %.1f"%
-                           (statistics.latest_major_release()+'.x',
-                            statistics.total_public_flight_duration_latest_release()))
-    plots.append(column([div, div_info, div_info_release]))
+STANDARD_TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
 
-    p = statistics.plot_public_airframe_statistics()
-    plots.append(p)
+simname = 'faasimulated.ulg'
+realname = 'faareal.ulg'
+sim_polarity = 1  # determines if we should reverse the Y data
+real_polarity = 1
+simx_offset = 0
+realx_offset = 0
+read_file = True
+reverse_sim_data = False
+reverse_real_data = False
+new_data = True
+read_file_local = False
+new_real = False
+new_sim = False
+metric = 'x'
 
-    p = statistics.plot_public_boards_statistics()
-    plots.append(p)
+sim_reverse_button = RadioButtonGroup(
+        labels=["Sim Default", "Reversed"], active=0)
+sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
+real_reverse_button = RadioButtonGroup(
+        labels=["Real Default", "Reversed"], active=0)
+real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
 
-    p = statistics.plot_public_boards_num_flights_statistics()
-    plots.append(p)
+# set up widgets
 
-    p = statistics.plot_public_flight_mode_statistics()
-    plots.append(p)
-
-    # TODO: add a rating pie chart (something like
-    # http://bokeh.pydata.org/en/latest/docs/gallery/donut_chart.html ?)
-
-    print_timing("Plotting Stats", start_time)
-
-    curdoc().template_variables['is_stats_page'] = True
-
-    layout = column(plots, sizing_mode='scale_width')
-    curdoc().add_root(layout)
-    curdoc().title = "Flight Review - Statistics"
+stats = PreText(text='Thiel Coefficient', width=500)
+# datatype = Select(value='XY', options=DEFAULT_FIELDS)
 
 
-else:
-    # show the plots of a single log
-
-    start_time = timer()
-
-    ulog_file_name = 'test.ulg'
-
-    ulog_file_name = os.path.join(get_log_filepath(), ulog_file_name)
-    error_message = ''
-    log_id = ''
-
-    try:
-
-        if GET_arguments is not None and 'log' in GET_arguments:
-            log_args = GET_arguments['log']
-            if len(log_args) == 1:
-                log_id = str(log_args[0], 'utf-8')
-                if not validate_log_id(log_id):
-                    raise ValueError('Invalid log id: {}'.format(log_id))
-                print('GET[log]={}'.format(log_id))
-                ulog_file_name = get_log_filename(log_id)
-
-        ulog = load_ulog_file(ulog_file_name)
-        px4_ulog = PX4ULog(ulog)
-        px4_ulog.add_roll_pitch_yaw()
-
-    except ULogException:
-        error_message = ('A parsing error occured when trying to read the file - '
-                         'the log is most likely corrupt.')
-    except:
-        print("Error loading file:", sys.exc_info()[0], sys.exc_info()[1])
-        error_message = 'An error occured when trying to read the file.'
+# @lru_cache()
+def load_data(filename):
+    fname = join(DATA_DIR, filename)
+    ulog = load_ulog_file(fname)
+    cur_dataset = ulog.get_dataset('vehicle_local_position')
+    return cur_dataset
 
 
-    print_timing("Data Loading", start_time)
-    start_time = timer()
-
-    if error_message == '':
-
-        # read the data from DB
-        db_data = DBData()
-        vehicle_data = None
-        try:
-            con = sqlite3.connect(get_db_filename(), detect_types=sqlite3.PARSE_DECLTYPES)
-            cur = con.cursor()
-            cur.execute('select Description, Feedback, Type, WindSpeed, Rating, VideoUrl, '
-                        'ErrorLabels from Logs where Id = ?', [log_id])
-            db_tuple = cur.fetchone()
-            if db_tuple is not None:
-                db_data.description = db_tuple[0]
-                db_data.feedback = db_tuple[1]
-                db_data.type = db_tuple[2]
-                db_data.wind_speed = db_tuple[3]
-                db_data.rating = db_tuple[4]
-                db_data.video_url = db_tuple[5]
-                db_data.error_labels = sorted(
-                    [int(x) for x in db_tuple[6].split(',') if len(x) > 0]) \
-                    if db_tuple[6] else []
-
-            # vehicle data
-            if 'sys_uuid' in ulog.msg_info_dict:
-                sys_uuid = escape(ulog.msg_info_dict['sys_uuid'])
-
-                cur.execute('select LatestLogId, Name, FlightTime '
-                            'from Vehicle where UUID = ?', [sys_uuid])
-                db_tuple = cur.fetchone()
-                if db_tuple is not None:
-                    vehicle_data = DBVehicleData()
-                    vehicle_data.log_id = db_tuple[0]
-                    if len(db_tuple[1]) > 0:
-                        vehicle_data.name = db_tuple[1]
-                    try:
-                        vehicle_data.flight_time = int(db_tuple[2])
-                    except:
-                        pass
-
-            cur.close()
-            con.close()
-        except:
-            print("DB access failed:", sys.exc_info()[0], sys.exc_info()[1])
-
-        def show_exception_page():
-            """ show an error page in case of an unknown/unhandled exception """
-            title = 'Internal Error'
-
-            error_message = ('<h3>Internal Server Error</h3>'
-                             '<p>Please open an issue on <a '
-                             'href="https://github.com/PX4/flight_review/issues" target="_blank">'
-                             'https://github.com/PX4/flight_review/issues</a> with a link '
-                             'to this log.')
-            div = Div(text=error_message, width=int(plot_width*0.9))
-            plots = [column(div, width=int(plot_width*0.9))]
-            curdoc().template_variables['internal_error'] = True
-            return (title, error_message, plots)
+# @lru_cache()
+def get_data(simname,realname, metric):
+    global new_real, new_sim, read_file_local, realfile, simfile
+    print("Now in get_data")
+    dfsim = load_data(simname)
+    dfreal = load_data(realname)
+    if read_file_local:    # replace the datalogs with local ones
+        if new_real:
+            print("Loading in a new real log")
+            dfreal = realfile
+            new_real = False
+        if new_sim:
+            print("Loading in a new sim log")
+            dfsim = simfile
+            new_sim = False
+ 
+    sim_data = dfsim.data[metric]
+    pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
+    sim_time = dfsim.data['timestamp']
+    pd_time = pd.DataFrame(sim_time, columns = ['time'])
+    real_data = dfreal.data[metric]
+    pd_real = pd.DataFrame(real_data, columns = ['real'])
+    new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
+    new_data = new_data.dropna()   # remove missing values
+    return new_data
+    # print(new_data)
+    # dfdata = pd.DataFrame(cur_dataset.data) 
+    # data = pd.concat([dfsim, dfreal], axis=1)
+    # data = data.dropna()   # remove missing values
+    # sim_mean = dfsim.y.mean()  # get the average
+    # real_mean = dfreal.y.mean()
+    # mean_diff = sim_mean - real_mean 
+    # data.realy = data.realy + mean_diff # normalize the two
+    # data['sim'] = dfsim.x
+    # data['simt'] = dfsim.timestamp
+    # data['real'] = dfreal.x
+    # data['realt'] = dfreal.timestamp
 
 
-        # check which plots to show
-        plots_page = 'default'
-        if GET_arguments is not None and 'plots' in GET_arguments:
-            plots_args = GET_arguments['plots']
-            if len(plots_args) == 1:
-                plots_page = str(plots_args[0], 'utf-8')
-        if plots_page == 'pid_analysis':
-            try:
-                link_to_main_plots = '?log='+log_id
-                plots = get_pid_analysis_plots(ulog, px4_ulog, db_data,
-                                               link_to_main_plots)
+def update(selected=None):
+    global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
+    if (read_file or read_file_local):
+        print("Fetching new data", simname, realname, metric)
+        original_data = get_data(simname, realname, metric)
+        datalog = copy.deepcopy(original_data)
+        datasource.data = datalog
+        read_file = False
+        read_file_local = False
+    print("Sim offset", simx_offset)
+    print("Real offset", realx_offset)
+    if reverse_sim_data:
+        datalog[['sim']] = sim_polarity * original_data['sim']  # reverse data if necessary
+        simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
+        simmin = round(min(datalog[['sim']].values)[0])
+        datasource.data = datalog
+        reverse_sim_data = False
+    if reverse_real_data:
+        datalog['real'] = real_polarity * original_data['real']
+        realmax = round(max(datalog[['real']].values)[0])
+        realmin = round(min(datalog[['real']].values)[0])
+        datasource.data = datalog
+        reverse_real_data = False
+    if new_data:
+        datasource.data = datalog
+        new_data = False
 
-                title = 'Flight Review - '+px4_ulog.get_mav_type()
 
-            except Exception as error:
-                # catch all errors to avoid showing a blank page. Note that if we
-                # get here, there's a bug somewhere that needs to be fixed!
-                traceback.print_exc()
-                title, error_message, plots = show_exception_page()
+def upload_new_data_real(attr, old, new):
+    global read_file_local, new_real, realfile, original_data
+    print("one")
+    read_file_local = True
+    new_real = True
+    print("two")
+    decoded = base64.b64decode(new)
+    print("three")
+    tempfile = io.BytesIO(decoded)
+    print("four")
+    tempfile = ULog(tempfile)
+    print("five")
+    realfile = tempfile.get_dataset('vehicle_local_position')
+    print("Uploading new real file")
+    update()
 
-        else:
-            # template variables
-            curdoc().template_variables['cur_err_ids'] = db_data.error_labels
-            curdoc().template_variables['mapbox_api_access_token'] = get_mapbox_api_access_token()
-            curdoc().template_variables['is_plot_page'] = True
-            curdoc().template_variables['log_id'] = log_id
-            flight_modes = [
-                {'name': 'Manual', 'color': HTML_color_to_RGB(flight_modes_table[0][1])},
-                {'name': 'Altitude Control', 'color': HTML_color_to_RGB(flight_modes_table[1][1])},
-                {'name': 'Position Control', 'color': HTML_color_to_RGB(flight_modes_table[2][1])},
-                {'name': 'Acro', 'color': HTML_color_to_RGB(flight_modes_table[10][1])},
-                {'name': 'Stabilized', 'color': HTML_color_to_RGB(flight_modes_table[15][1])},
-                {'name': 'Offboard', 'color': HTML_color_to_RGB(flight_modes_table[14][1])},
-                {'name': 'Rattitude', 'color': HTML_color_to_RGB(flight_modes_table[16][1])},
-                {'name': 'Auto (Mission, RTL, Follow, ...)',
-                 'color': HTML_color_to_RGB(flight_modes_table[3][1])}
-                ]
-            curdoc().template_variables['flight_modes'] = flight_modes
-            vtol_modes = [
-                {'name': 'Transition', 'color': HTML_color_to_RGB(vtol_modes_table[1][1])},
-                {'name': 'Fixed-Wing', 'color': HTML_color_to_RGB(vtol_modes_table[2][1])},
-                {'name': 'Multicopter', 'color': HTML_color_to_RGB(vtol_modes_table[3][1])},
-                ]
-            curdoc().template_variables['vtol_modes'] = vtol_modes
+def upload_new_data_sim(attr, old, new):
+    global read_file_local, new_sim, simfile
+    read_file_local = True
+    new_sim = True
+    decoded = base64.b64decode(new)
+    tempfile = io.BytesIO(decoded)
+    tempfile = ULog(tempfile)
+    simfile = tempfile.get_dataset('vehicle_local_position')
+    print("Uploading new sim file")
+    update()
 
-            link_to_3d_page = '3d?log='+log_id
-            link_to_pid_analysis_page = '?plots=pid_analysis&log='+log_id
+def update_stats(data):
+    real = np.array(data['realy'])
+    sim = np.array(data['simy'])
+    sum1 = 0
+    sum2 = 0
+    sum3 = 0
+    for n in range(len(real)):
+        sum1 = sum1 + (real[int(n)]-sim[int(n)])**2
+        sum2 = sum2 + real[int(n)]**2
+        sum3 = sum3 + sim[int(n)]**2
+    sum1 = 1/len(real) * sum1
+    sum2 = 1/len(real) * sum2
+    sum3 = 1/len(real) * sum3
+    sum1 = math.sqrt(sum1)
+    sum2 = math.sqrt(sum2)
+    sum3 = math.sqrt(sum3)
+    TIC = sum1/(sum2 + sum3)
+    stats.text = 'Thiel coefficient: ' + str(round(TIC,3))
 
-            try:
-                plots = generate_plots(ulog, px4_ulog, db_data, vehicle_data,
-                                       link_to_3d_page, link_to_pid_analysis_page)
 
-                title = 'Flight Review - '+px4_ulog.get_mav_type()
+def reverse_sim():
+    global sim_polarity, reverse_sim_data
+    if (sim_reverse_button.active == 1): sim_polarity = -1
+    else: sim_polarity = 1
+    reverse_sim_data = True
+    update()
 
-            except Exception as error:
-                # catch all errors to avoid showing a blank page. Note that if we
-                # get here, there's a bug somewhere that needs to be fixed!
-                traceback.print_exc()
+def reverse_real():
+    global real_polarity, reverse_real_data
+    if (real_reverse_button.active == 1): real_polarity = -1
+    else: real_polarity = 1
+    reverse_real_data = True
+    update()
 
-                title, error_message, plots = show_exception_page()
+def change_sim_scale(shift):
+    global simx_offset, new_data
+    simx_offset = shift
+    new_data = True
+    update()
 
+def change_real_scale(shift):
+    global realx_offset, new_data
+    realx_offset = shift
+    new_data = True
+    update()
+
+def sim_change(attrname, old, new):
+    global metric, read_file
+    print("Sim change:", new)
+    metric = new
+    read_file = True
+    update()   
+
+def get_thiel_analysis_plots(ulog, px4_ulog, db_data, vehicle_data, link_to_main_plots):
+    global datalog, original_data,datasource
+    """
+    get all bokeh plots shown on the Thiel analysis page
+    :return: list of bokeh plots
+    """
+    def _resample(time_array, data, desired_time):
+        """ resample data at a given time to a vector of desired_time """
+        data_f = interp1d(time_array, data, fill_value='extrapolate')
+        return data_f(desired_time)
+
+
+    sim = False
+    if (link_to_main_plots.find("sim") != -1):
+        temp_link_to_main_plots = link_to_main_plots.replace('sim','')
+        sim = True
+
+
+    if sim:
+        print("do some sim stuff")
     else:
+        print("do regular stuff")
+        page_intro = """
+    <p>
+    This page shows the correspondance between a simulated and a real flight log.
+    </p>
+        """
+        # curdoc().template_variables['title_html'] = get_heading_html(
+        #     ulog, px4_ulog,db_data, None, [('Open Main Plots', link_to_main_plots,)],
+        #     'Thiel Analysis') + page_intro
+        curdoc().template_variables['title_html'] = get_heading_html(
+            ulog, px4_ulog, db_data, None,
+            additional_links=[("Load Simulation Log", '/browse2?search=sim'),("Load Real Log", '/browse2?search=real')])
 
-        title = 'Error'
 
-        div = Div(text="<h3>Error</h3><p>"+error_message+"</p>", width=int(plot_width*0.9))
-        plots = [column(div, width=int(plot_width*0.9))]
 
-    # layout
-    layout = column(plots)
-    curdoc().add_root(layout)
-    curdoc().title = title
+      
+        keys = []
+        data = ulog.data_list
+        for d in data:
+            data_keys = [f.field_name for f in d.field_data]
+            data_keys.remove('timestamp')
+            keys.append(data_keys)
 
-    print_timing("Plotting", start_time)
+
+
+        datalog = get_data(simname, realname, metric)
+        original_data = copy.deepcopy(datalog)
+
+
+
+#        print(datalog)
+
+        # data2 = data['x']
+
+        # t = realsource['timestamp']
+        # x = realsource['x']
+        # y = realsource['y']
+
+                # set up plots
+
+        # simsource = ColumnDataSource(data = dict(simt=[],sim=[]))
+        # realsource = ColumnDataSource(data = dict(realt=[],real=[]))
+
+
+        datatype = Select(value='x', options=keys[0])
+
+        datatype.on_change('value', sim_change)
+
+    
+
+#         file_input = FileInput(accept=".ulg")
+#  #       file_input.on_change('filename', upload_new_data_sim)  # this is if you just want the filename (but not path)
+#         file_input.on_change('value', upload_new_data_sim)
+#         file_input2 = FileInput(accept=".ulg")
+#         file_input2.on_change('value', upload_new_data_real)
+
+        intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
+        # sim_upload_text = Paragraph(text="Upload a simulator datalog:",width=500, height=15)
+        # real_upload_text = Paragraph(text="Upload a corresponding real-world datalog:",width=500, height=15)
+        choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
+        #checkbox_group = CheckboxGroup(labels=["x", "y", "vx","vy","lat","lon"], active=[0, 1])
+
+        # set up plots
+        # print(datalog)
+
+        datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[]))
+        datasource.data = datalog
+
+        tools = 'xpan,wheel_zoom,reset'
+        
+        ts1 = figure(plot_width=1200, plot_height=400, tools=tools, x_axis_type='linear')
+        ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data")
+        ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data")
+        
+
+        x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
+        x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
+        flight_mode_changes = get_flight_mode_changes(ulog)
+
+        # set up layout
+        widgets = column(datatype,stats)
+        sim_button = column(sim_reverse_button)
+        real_button = column(real_reverse_button)
+        main_row = row(widgets)
+        series = column(ts1, sim_button, real_button)
+        layout = column(main_row, series)
+
+        # initialize
+
+
+        update()
+        curdoc().add_root(intro_text)
+
+        # curdoc().add_root(sim_upload_text)
+        # curdoc().add_root(file_input)
+        # curdoc().add_root(real_upload_text)
+        # curdoc().add_root(file_input2)
+        curdoc().add_root(choose_field_text)    
+        curdoc().add_root(layout)
+        curdoc().title = "Flight data"
+
+        plots = []
+
+    return plots

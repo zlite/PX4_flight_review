@@ -11,7 +11,7 @@ import sqlite3
 import tornado.web
 
 # this is needed for the following imports
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../plot_app'))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../thiel_app'))
 from config import get_db_filename, get_overview_img_filepath
 from db_entry import DBData, DBDataGenerated
 from helper import flight_modes_table, get_airframe_data, html_long_word_force_break
@@ -174,7 +174,7 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
                 templog_id = log_id+"thiel"
                 return Columns([
                     counter,
-                    '<a href="plot_app?log='+templog_id+'">'+log_date+'</a>',
+                    '<a href="thiel_app?log='+templog_id+'">'+log_date+'</a>',
                     image_col,
                     description,
                     db_data.mav_type,
@@ -190,7 +190,7 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
             else:
                 return Columns([
                     counter,
-                    '<a href="plot_app?log='+log_id+'">'+log_date+'</a>',
+                    '<a href="thiel_app?log='+log_id+'">'+log_date+'</a>',
                     image_col,
                     description,
                     db_data.mav_type,
