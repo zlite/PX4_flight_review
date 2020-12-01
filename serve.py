@@ -135,7 +135,9 @@ show_ulog_file = False
 show_3d_page = False
 show_pid_analysis_page = False
 show_thiel = False
-if args.thiel: show_thiel = True
+if args.thiel:
+    print("args.thiel is true") 
+    show_thiel = True
 if args.file is not None:
     ulog_file = os.path.abspath(args.file)
     show_ulog_file = True
@@ -149,6 +151,7 @@ applications = {}
 if args.show:
     main_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app')
     sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app'))
+    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'thiel_app'))
     handler = DirectoryHandler(filename=main_path)
     applications['/plot_app'] = Application(handler)
     applications['/thiel_app'] = Application(handler)
@@ -193,18 +196,21 @@ while server is None:
 
 
 if args.show:
+    print("args.show is true")
     # we have to defer opening in browser until we start up the server
     def show_callback():
         """ callback to open a browser window after server is fully initialized"""
         if show_ulog_file:
+            print("show_ulog_file is true")
             if show_3d_page:
                 server.show('/3d?log='+ulog_file)
             elif show_pid_analysis_page:
                 server.show('/plot_app?plots=pid_analysis&log='+ulog_file)
-            elif show_thiel:
-                server.show('/thiel_app')
             else:
                 server.show('/plot_app?log='+ulog_file)
+        elif show_thiel:
+            print("showing Thiel app")
+            server.show('/thiel_app')
         else:
             server.show('/upload')
     server.io_loop.add_callback(show_callback)
