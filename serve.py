@@ -25,6 +25,7 @@ from tornado_handlers.download import DownloadHandler
 from tornado_handlers.upload import UploadHandler
 from tornado_handlers.browse import BrowseHandler, BrowseDataRetrievalHandler
 from tornado_handlers.browse2 import Browse2Handler
+from tornado_handlers.top import TopHandler
 from tornado_handlers.edit_entry import EditEntryHandler
 from tornado_handlers.db_info_json import DBInfoHandler
 from tornado_handlers.three_d import ThreeDHandler
@@ -172,9 +173,10 @@ extra_patterns = [
     (r'/3d', ThreeDHandler),
     (r'/radio_controller', RadioControllerHandler),
     (r'/edit_entry', EditEntryHandler),
-    (r'/?', UploadHandler), #root should point to upload
+    (r'/?', TopHandler), 
     (r'/download', DownloadHandler),
     (r'/dbinfo', DBInfoHandler),
+    (r'/top', TopHandler),
     (r'/error_label', UpdateErrorLabelHandler),
     (r"/stats", RedirectHandler, {"url": "/plot_app?stats=1"}),
     (r'/overview_img/(.*)', StaticFileHandler, {'path': get_overview_img_filepath()}),
@@ -213,7 +215,7 @@ if args.show:
             print("showing Thiel app")
             server.show('/thiel_app')
         else:
-            server.show('/upload')
+            server.show('/top')
     server.io_loop.add_callback(show_callback)
 
 
