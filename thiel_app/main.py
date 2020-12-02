@@ -48,6 +48,7 @@ from bokeh.application.handlers import DirectoryHandler
 
 DATA_DIR = join(dirname(__file__), 'datalogs')
 
+
 DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
 STANDARD_TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
@@ -238,16 +239,7 @@ def sim_change(attrname, old, new):
 def get_thiel_analysis_plots(ulog):
     global datalog, original_data,datasource
 
-    # curdoc().template_variables['title_html'] = get_heading_html(
-    #     ulog, px4_ulog,db_data, None, [('Open Main Plots', link_to_main_plots,)],
-    #     'Thiel Analysis') + page_intro
-    # curdoc().template_variables['title_html'] = get_heading_html(
-    #     None, None, db_data, None,
-    #     additional_links=[("Load Simulation Log", '/browse2?search=sim'),("Load Real Log", '/browse2?search=real')])
-    additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>"
-
-    curdoc().template_variables['title_html'] = "<table width='100%'><tr><td><h3>" + "</h3></td><td align='left'>" + additional_links+"</td></tr></table>"
-    
+    additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>" 
     keys = []
     data = ulog.data_list
     for d in data:
@@ -264,6 +256,7 @@ def get_thiel_analysis_plots(ulog):
 
     intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
     choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
+    links_text = Div(text="<table width='100%'><tr><td><h3>" + "</h3></td><td align='left'>" + additional_links+"</td></tr></table>")
 
     datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[]))
     datasource.data = datalog
@@ -292,11 +285,7 @@ def get_thiel_analysis_plots(ulog):
 
     update()
     curdoc().add_root(intro_text)
-
-    # curdoc().add_root(sim_upload_text)
-    # curdoc().add_root(file_input)
-    # curdoc().add_root(real_upload_text)
-    # curdoc().add_root(file_input2)
+    curdoc().add_root(links_text)
     curdoc().add_root(choose_field_text)    
     curdoc().add_root(layout)
     curdoc().title = "Flight data"

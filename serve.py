@@ -148,17 +148,20 @@ if args.file is not None:
 
 applications = {}
 
+thiel_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'thiel_app')
+plot_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app')
+
 if args.show:
     if show_thiel:
-        main_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'thiel_app')
+        handler = DirectoryHandler(filename=thiel_path)
         sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'thiel_app'))
     else: 
-        main_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app')
+        handler = DirectoryHandler(filename=plot_path)
         sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app'))
 
-    handler = DirectoryHandler(filename=main_path)
     applications['/plot_app'] = Application(handler)
     applications['/thiel_app'] = Application(handler)
+
 
 
 set_log_id_is_filename(show_ulog_file)
