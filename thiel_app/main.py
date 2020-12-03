@@ -252,7 +252,7 @@ def get_thiel_analysis_plots(simname, realname):
 
     datatype.on_change('value', sim_change)
 
-    intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=500, height=100, align="center")
+    intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=800, height=100, align="center")
     choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
     links_text = Div(text="<table width='100%'><tr><td><h3>" + "</h3></td><td align='left'>" + additional_links+"</td></tr></table>")
 
@@ -261,7 +261,7 @@ def get_thiel_analysis_plots(simname, realname):
 
     tools = 'xpan,wheel_zoom,reset'
     
-    ts1 = figure(plot_width=1200, plot_height=400, tools=tools, x_axis_type='linear')
+    ts1 = figure(plot_width=1000, plot_height=400, tools=tools, x_axis_type='linear')
     ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data")
     ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data")
     
