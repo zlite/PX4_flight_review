@@ -36,9 +36,13 @@ class Browse2DataRetrievalHandler(tornado.web.RequestHandler):
         draw_counter = int(self.get_argument('draw'))
 
         sim = False
+        real = False
         if search_str == "sim":
             print("Search string is sim")
             sim = True
+        if search_str == "real":
+            print("Search string is real")
+            real = True
 
         json_output = dict()
         json_output['draw'] = draw_counter
@@ -169,9 +173,12 @@ class Browse2DataRetrievalHandler(tornado.web.RequestHandler):
             if os.path.exists(image_filename):
                 image_col = '<img class="map_overview" src="/overview_img/'
                 image_col += log_id+'.png" alt="Overview Image Load Failed" height=50/>'
+                
+            if sim:
+                templog_id = log_id+"sim"
+            if real:
+                templog_id = log_id+"real"
 
-            print("Generating URLs...")
-            templog_id = log_id+"thiel"
             return Columns([
                 counter,
                 '<a href="thiel_app?log='+templog_id+'">'+log_date+'</a>',

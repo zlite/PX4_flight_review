@@ -148,17 +148,11 @@ if args.file is not None:
 
 applications = {}
 
-thiel_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'thiel_app')
-plot_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app')
 
 if args.show:
-    if show_thiel:
-        handler = DirectoryHandler(filename=thiel_path)
-        sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'thiel_app'))
-    else: 
-        handler = DirectoryHandler(filename=plot_path)
-        sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'plot_app'))
-
+    thiel_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'thiel_app')
+    handler = DirectoryHandler(filename=thiel_path)
+    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'thiel_app'))
     applications['/plot_app'] = Application(handler)
     applications['/thiel_app'] = Application(handler)
 

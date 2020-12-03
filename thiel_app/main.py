@@ -67,6 +67,7 @@ read_file_local = False
 new_real = False
 new_sim = False
 metric = 'x'
+keys = []
 
 sim_reverse_button = RadioButtonGroup(
         labels=["Sim Default", "Reversed"], active=0)
@@ -83,8 +84,14 @@ stats = PreText(text='Thiel Coefficient', width=500)
 
 # @lru_cache()
 def load_data(filename):
+    global keys
     fname = join(DATA_DIR, filename)
     ulog = load_ulog_file(fname)
+    data = ulog.data_list
+    for d in data:
+        data_keys = [f.field_name for f in d.field_data]
+        data_keys.remove('timestamp')
+        keys.append(data_keys)
     cur_dataset = ulog.get_dataset('vehicle_local_position')
     return cur_dataset
 
@@ -95,6 +102,7 @@ def get_data(simname,realname, metric):
     print("Now in get_data")
     dfsim = load_data(simname)
     dfreal = load_data(realname)
+
     if read_file_local:    # replace the datalogs with local ones
         if new_real:
             print("Loading in a new real log")
@@ -161,13 +169,9 @@ def upload_new_data_real(attr, old, new):
     print("one")
     read_file_local = True
     new_real = True
-    print("two")
     decoded = base64.b64decode(new)
-    print("three")
     tempfile = io.BytesIO(decoded)
-    print("four")
     tempfile = ULog(tempfile)
-    print("five")
     realfile = tempfile.get_dataset('vehicle_local_position')
     print("Uploading new real file")
     update()
@@ -236,16 +240,10 @@ def sim_change(attrname, old, new):
     read_file = True
     update()   
 
-def get_thiel_analysis_plots(ulog):
+def get_thiel_analysis_plots(simname, realname):
     global datalog, original_data,datasource
 
     additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>" 
-    keys = []
-    data = ulog.data_list
-    for d in data:
-        data_keys = [f.field_name for f in d.field_data]
-        data_keys.remove('timestamp')
-        keys.append(data_keys)
 
     datalog = get_data(simname, realname, metric)
     original_data = copy.deepcopy(datalog)
@@ -268,9 +266,9 @@ def get_thiel_analysis_plots(ulog):
     ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data")
     
 
-    x_range_offset = (ulog.last_timestamp - ulog.start_timestamp) * 0.05
-    x_range = Range1d(ulog.start_timestamp - x_range_offset, ulog.last_timestamp + x_range_offset)
-    flight_mode_changes = get_flight_mode_changes(ulog)
+    # x_range_offset = (datalog.last_timestamp - datalog.start_timestamp) * 0.05
+    # x_range = Range1d(datalog.start_timestamp - x_range_offset, datalog.last_timestamp + x_range_offset)
+    # flight_mode_changes = get_flight_mode_changes(datalog)
 
     # set up layout
     widgets = column(datatype,stats)
@@ -293,7 +291,31 @@ def get_thiel_analysis_plots(ulog):
     #     plots = []
 
     # return plots
+
 print("Now starting Thiel app")
-fname = join(DATA_DIR, simname)
-ulog = load_ulog_file(fname)   # start with a random placeholder sim dataset
-get_thiel_analysis_plots(ulog)
+GET_arguments = curdoc().session_context.request.arguments
+simname = join(DATA_DIR, simname)    # this is the default log file to load if you haven't been given another one
+realname = join(DATA_DIR, realname)    # this is the default log file to load if you haven't been given another one
+
+
+if GET_arguments is not None and 'log' in GET_arguments:
+    log_args = GET_arguments['log']
+    if len(log_args) == 1:
+        templog_id = str(log_args[0], 'utf-8')
+        if (templog_id.find("sim") != -1):
+            log_id = templog_id.replace('sim','')
+            print("This is a sim file. New log ID=", log_id)
+            ulog_file_name = get_log_filename(log_id)
+            simname = os.path.join(get_log_filepath(), ulog_file_name)
+        elif (templog_id.find("real") != -1):
+            log_id = templog_id.replace('real','')
+            print("This is a real file. New log ID=", log_id)
+            ulog_file_name = get_log_filename(log_id)
+            realname = os.path.join(get_log_filepath(), ulog_file_name)
+        else:
+            log_id = str(log_args[0], 'utf-8')
+            if not validate_log_id(log_id):
+                raise ValueError('Invalid log id: {}'.format(log_id))
+        print('GET[log]={}'.format(log_id))
+        ulog_file_name = get_log_filename(log_id)
+get_thiel_analysis_plots(simname, realname)
