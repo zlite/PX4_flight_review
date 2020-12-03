@@ -23,7 +23,7 @@ BROWSE_TEMPLATE = 'browse2.html'
 
 #pylint: disable=abstract-method
 
-class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
+class Browse2DataRetrievalHandler(tornado.web.RequestHandler):
     """ Ajax data retrieval handler """
 
     def get(self, *args, **kwargs):
@@ -170,39 +170,23 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
                 image_col = '<img class="map_overview" src="/overview_img/'
                 image_col += log_id+'.png" alt="Overview Image Load Failed" height=50/>'
 
-            if sim:
-                templog_id = log_id+"thiel"
-                return Columns([
-                    counter,
-                    '<a href="thiel_app?log='+templog_id+'">'+log_date+'</a>',
-                    image_col,
-                    description,
-                    db_data.mav_type,
-                    airframe,
-                    db_data.sys_hw,
-                    ver_sw,
-                    duration_str,
-                    start_time_str,
-                    db_data.rating_str(),
-                    db_data.num_logged_errors,
-                    flight_modes
-                ], search_only_columns)
-            else:
-                return Columns([
-                    counter,
-                    '<a href="thiel_app?log='+log_id+'">'+log_date+'</a>',
-                    image_col,
-                    description,
-                    db_data.mav_type,
-                    airframe,
-                    db_data.sys_hw,
-                    ver_sw,
-                    duration_str,
-                    start_time_str,
-                    db_data.rating_str(),
-                    db_data.num_logged_errors,
-                    flight_modes
-                ], search_only_columns)
+            print("Generating URLs...")
+            templog_id = log_id+"thiel"
+            return Columns([
+                counter,
+                '<a href="thiel_app?log='+templog_id+'">'+log_date+'</a>',
+                image_col,
+                description,
+                db_data.mav_type,
+                airframe,
+                db_data.sys_hw,
+                ver_sw,
+                duration_str,
+                start_time_str,
+                db_data.rating_str(),
+                db_data.num_logged_errors,
+                flight_modes
+            ], search_only_columns)
 
         # need to fetch all here, because we will do more SQL calls while
         # iterating (having multiple cursor's does not seem to work)
