@@ -181,7 +181,7 @@ class Browse2DataRetrievalHandler(tornado.web.RequestHandler):
 
             return Columns([
                 counter,
-                '<a href="thiel_app?log='+templog_id+'">'+log_date+'</a>',
+                '<a href="thiel_app?log='+templog_id + description+'">'+log_date+'</a>',
                 image_col,
                 description,
                 db_data.mav_type,
