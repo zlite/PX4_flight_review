@@ -173,7 +173,7 @@ class Browse2DataRetrievalHandler(tornado.web.RequestHandler):
             if os.path.exists(image_filename):
                 image_col = '<img class="map_overview" src="/overview_img/'
                 image_col += log_id+'.png" alt="Overview Image Load Failed" height=50/>'
-                
+
             if sim:
                 templog_id = log_id+"sim"
             if real:
@@ -181,7 +181,7 @@ class Browse2DataRetrievalHandler(tornado.web.RequestHandler):
 
             return Columns([
                 counter,
-                '<a href="thiel_app?log='+templog_id + description+'">'+log_date+'</a>',
+                '<a href="thiel_app?log='+templog_id+'desc:'+description+'">'+log_date+'</a>',
                 image_col,
                 description,
                 db_data.mav_type,

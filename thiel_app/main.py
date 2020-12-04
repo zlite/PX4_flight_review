@@ -68,6 +68,8 @@ new_real = False
 new_sim = False
 metric = 'x'
 keys = []
+simdescription = ''
+realdescription = ''
 
 sim_reverse_button = RadioButtonGroup(
         labels=["Sim Default", "Reversed"], active=0)
@@ -262,8 +264,8 @@ def get_thiel_analysis_plots(simname, realname):
     tools = 'xpan,wheel_zoom,reset'
     
     ts1 = figure(plot_width=1000, plot_height=400, tools=tools, x_axis_type='linear')
-    ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data")
-    ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data")
+    ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data: "+ simdescription)
+    ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data: " + realdescription)
     
 
     # x_range_offset = (datalog.last_timestamp - datalog.start_timestamp) * 0.05
@@ -302,16 +304,20 @@ if GET_arguments is not None and 'log' in GET_arguments:
     log_args = GET_arguments['log']
     if len(log_args) == 1:
         templog_id = str(log_args[0], 'utf-8')
+        file_details = templog_id.split('desc:')
+        templog_id = file_details[0]
         if (templog_id.find("sim") != -1):
             log_id = templog_id.replace('sim','')
             print("This is a sim file. New log ID=", log_id)
             ulog_file_name = get_log_filename(log_id)
             simname = os.path.join(get_log_filepath(), ulog_file_name)
+            simdescription = file_details[1]
         elif (templog_id.find("real") != -1):
             log_id = templog_id.replace('real','')
             print("This is a real file. New log ID=", log_id)
             ulog_file_name = get_log_filename(log_id)
             realname = os.path.join(get_log_filepath(), ulog_file_name)
+            realdescription = file_details[1]
         else:
             log_id = str(log_args[0], 'utf-8')
             if not validate_log_id(log_id):
