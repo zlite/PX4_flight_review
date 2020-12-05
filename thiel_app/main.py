@@ -74,10 +74,10 @@ new_sim = False
 metric = 'x'
 keys = []
 
-config = [simname, realname, metric, simdescription, realdescription]
+# config = [simname, realname, metric, simdescription, realdescription]
 
-with open('settings', 'wb') as fp:
-    pickle.dump(config, fp)
+# with open('settings', 'wb') as fp:
+#     pickle.dump(config, fp)
 
 
 ''' We're now going to load a bunch of state variables to sync the app back to the last known state
@@ -85,6 +85,9 @@ with open('settings', 'wb') as fp:
 The format of the list is as follows:
 config[0] = sim ID
 config[1] = real ID
+config[2] = metric
+config[3] = simdescription
+config[4] = realdesciption
 
 '''
 with open ('settings', 'rb') as fp:
@@ -131,6 +134,10 @@ def get_data(simname,realname, metric):
     print("Now in get_data")
     dfsim = load_data(simname)
     dfreal = load_data(realname)
+    config[0] = simname
+    config[1] = realname
+    with open('settings', 'wb') as fp:  #save state
+        pickle.dump(config, fp)
 
     if read_file_local:    # replace the datalogs with local ones
         if new_real:
@@ -141,6 +148,7 @@ def get_data(simname,realname, metric):
             print("Loading in a new sim log")
             dfsim = simfile
             new_sim = False
+ 
  
     sim_data = dfsim.data[metric]
     pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
@@ -263,9 +271,10 @@ def change_real_scale(shift):
     update()
 
 def sim_change(attrname, old, new):
-    global metric, read_file
+    global metric, read_file, config
     print("Sim change:", new)
     metric = new
+    config[2] = metric # save state
     read_file = True
     update()   
 
