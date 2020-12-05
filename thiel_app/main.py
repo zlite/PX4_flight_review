@@ -13,6 +13,9 @@ import sys
 import errno
 import base64
 from db_entry import *
+import pickle 
+
+
 
 #import thiel_analysis
 from bokeh.io import curdoc,output_file, show
@@ -55,6 +58,8 @@ STANDARD_TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
 
 simname = 'faasimulated.ulg'
 realname = 'faareal.ulg'
+simdescription = '(Dummy data. Please select your own sim log above)'
+realdescription = '(Dummy data. Please select your own real log above)'
 sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
 simx_offset = 0
@@ -68,8 +73,30 @@ new_real = False
 new_sim = False
 metric = 'x'
 keys = []
-simdescription = ''
-realdescription = ''
+
+config = [simname, realname, metric, simdescription, realdescription]
+
+with open('settings', 'wb') as fp:
+    pickle.dump(config, fp)
+
+
+''' We're now going to load a bunch of state variables to sync the app back to the last known state
+
+The format of the list is as follows:
+config[0] = sim ID
+config[1] = real ID
+
+'''
+with open ('settings', 'rb') as fp:
+    config = pickle.load(fp)
+
+simname = config[0]
+realname = config[1]
+metric = config[2]
+simdescription = config[3]
+real_reverse_button = config[4]
+print("simname =", simname)
+print("realname =", realname)
 
 sim_reverse_button = RadioButtonGroup(
         labels=["Sim Default", "Reversed"], active=0)
