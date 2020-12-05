@@ -52,11 +52,8 @@ from bokeh.application.handlers import DirectoryHandler
 DATA_DIR = join(dirname(__file__), 'datalogs')
 
 
-DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
-STANDARD_TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
-
-simname = 'faasimulated.ulg'
+simname = 'faasimulated.ulg'  # these are the defaults if you don't load your own data
 realname = 'faareal.ulg'
 simdescription = '(Dummy data. Please select your own sim log above)'
 realdescription = '(Dummy data. Please select your own real log above)'
@@ -73,33 +70,11 @@ new_real = False
 new_sim = False
 metric = 'x'
 keys = []
-
-# config = [simname, realname, metric, simdescription, realdescription]
-
-# with open('settings', 'wb') as fp:
-#     pickle.dump(config, fp)
+config = []
 
 
-''' We're now going to load a bunch of state variables to sync the app back to the last known state
 
-The format of the list is as follows:
-config[0] = sim ID
-config[1] = real ID
-config[2] = metric
-config[3] = simdescription
-config[4] = realdesciption
 
-'''
-with open ('settings', 'rb') as fp:
-    config = pickle.load(fp)
-
-simname = config[0]
-realname = config[1]
-metric = config[2]
-simdescription = config[3]
-real_reverse_button = config[4]
-print("simname =", simname)
-print("realname =", realname)
 
 sim_reverse_button = RadioButtonGroup(
         labels=["Sim Default", "Reversed"], active=0)
@@ -134,10 +109,7 @@ def get_data(simname,realname, metric):
     print("Now in get_data")
     dfsim = load_data(simname)
     dfreal = load_data(realname)
-    config[0] = simname
-    config[1] = realname
-    with open('settings', 'wb') as fp:  #save state
-        pickle.dump(config, fp)
+
 
     if read_file_local:    # replace the datalogs with local ones
         if new_real:
@@ -172,6 +144,39 @@ def get_data(simname,realname, metric):
     # data['real'] = dfreal.x
     # data['realt'] = dfreal.timestamp
 
+def save_settings(config):
+    with open('settings', 'wb') as fp:  #save state
+        pickle.dump(config, fp)
+
+def read_settings():
+    ''' We're now going to load a bunch of state variables to sync the app back to the last known state. The file "settings" should exist in the main directory
+
+        # config = [simname, realname, metric, simdescription, realdescription]
+
+        The format of the list is as follows:
+        config[0] = sim ID
+        config[1] = real ID
+        config[2] = metric
+        config[3] = simdescription
+        config[4] = realdesciption
+
+        '''
+    global simname, realname, metric, simdescription, realdescription, real_reverse_button, sim_reverse_button
+    
+    with open ('settings', 'rb') as fp:
+        config = pickle.load(fp)
+
+    simname = config[0]
+    realname = config[1]
+    metric = config[2]
+    simdescription = config[3]
+    realdescription = config[4]
+    real_reverse_button.active = config[5]
+    sim_reverse_button.active = config[6]
+    print("simname =", simname)
+    print("realname =", realname)
+    return config
+
 
 def update(selected=None):
     global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
@@ -199,6 +204,7 @@ def update(selected=None):
     if new_data:
         datasource.data = datalog
         new_data = False
+    save_settings(config)
 
 
 def upload_new_data_real(attr, old, new):
@@ -245,15 +251,19 @@ def update_stats(data):
 
 
 def reverse_sim():
-    global sim_polarity, reverse_sim_data
-    if (sim_reverse_button.active == 1): sim_polarity = -1
+    global sim_polarity, reverse_sim_data, config
+    if (sim_reverse_button.active == 1): 
+        sim_polarity = -1
+        config[6] = sim_reverse_button.active
     else: sim_polarity = 1
     reverse_sim_data = True
     update()
 
 def reverse_real():
-    global real_polarity, reverse_real_data
-    if (real_reverse_button.active == 1): real_polarity = -1
+    global real_polarity, reverse_real_data, config
+    if (real_reverse_button.active == 1): 
+        real_polarity = -1
+        config[5] = real_reverse_button.active
     else: real_polarity = 1
     reverse_real_data = True
     update()
@@ -331,6 +341,7 @@ def get_thiel_analysis_plots(simname, realname):
     # return plots
 
 print("Now starting Thiel app")
+config = read_settings()  # load last known state
 GET_arguments = curdoc().session_context.request.arguments
 simname = join(DATA_DIR, simname)    # this is the default log file to load if you haven't been given another one
 realname = join(DATA_DIR, realname)    # this is the default log file to load if you haven't been given another one
