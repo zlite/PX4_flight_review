@@ -132,10 +132,7 @@ def get_data(simname,realname, metric):
     new_data = new_data.dropna()   # remove missing values
     save_settings(config)
     return new_data
-    # print(new_data)
-    # dfdata = pd.DataFrame(cur_dataset.data) 
-    # data = pd.concat([dfsim, dfreal], axis=1)
-    # data = data.dropna()   # remove missing values
+
     # sim_mean = dfsim.y.mean()  # get the average
     # real_mean = dfreal.y.mean()
     # mean_diff = sim_mean - real_mean 
@@ -144,6 +141,16 @@ def get_data(simname,realname, metric):
     # data['simt'] = dfsim.timestamp
     # data['real'] = dfreal.x
     # data['realt'] = dfreal.timestamp
+
+def update_config():
+    config[0] = simname
+    config[1] = realname
+    config[2] = metric
+    config[3] = simdescription
+    config[4] = realdescription
+    config[5] = 0
+    config[6] = 0
+    return config
 
 def save_settings(config):
     with open('settings', 'wb') as fp:  #save state
@@ -160,13 +167,14 @@ def read_settings():
         config[2] = metric
         config[3] = simdescription
         config[4] = realdesciption
+        config[5] = real_reverse_button.active
+        config[6] = sim_reverse_button.active
 
         '''
     global simname, realname, metric, simdescription, realdescription, real_reverse_button, sim_reverse_button
     
     with open ('settings', 'rb') as fp:
         config = pickle.load(fp)
-
     simname = config[0]
     realname = config[1]
     metric = config[2]
@@ -174,8 +182,6 @@ def read_settings():
     realdescription = config[4]
     # real_reverse_button.active = config[5]
     # sim_reverse_button.active = config[6]
-    print("simname =", simname)
-    print("realname =", realname)
     return config
 
 
@@ -205,6 +211,8 @@ def update(selected=None):
     if new_data:
         datasource.data = datalog
         new_data = False
+    config = update_config()
+    update_stats(datalog)
     save_settings(config)
 
 
@@ -231,8 +239,8 @@ def upload_new_data_sim(attr, old, new):
     update()
 
 def update_stats(data):
-    real = np.array(data['realy'])
-    sim = np.array(data['simy'])
+    real = np.array(data['real'])
+    sim = np.array(data['sim'])
     sum1 = 0
     sum2 = 0
     sum3 = 0
@@ -292,7 +300,7 @@ def get_thiel_analysis_plots(simname, realname):
     global datalog, original_data, datasource
 
     additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>" 
-
+    save_settings(config)
     datalog = get_data(simname, realname, metric)
     original_data = copy.deepcopy(datalog)
 
@@ -341,6 +349,7 @@ def get_thiel_analysis_plots(simname, realname):
 print("Now starting Thiel app")
 GET_arguments = curdoc().session_context.request.arguments
 config = read_settings()
+print("simname is", simname, "realname is", realname)
 # simname = join(DATA_DIR, simname)    # this is the default log file to load if you haven't been given another one
 # realname = join(DATA_DIR, realname)    # this is the default log file to load if you haven't been given another one
 
