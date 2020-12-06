@@ -53,10 +53,10 @@ DATA_DIR = join(dirname(__file__), 'datalogs')
 
 
 
-simname = 'faasimulated.ulg'  # these are the defaults if you don't load your own data
-realname = 'faareal.ulg'
-simdescription = '(Dummy data. Please select your own sim log above)'
-realdescription = '(Dummy data. Please select your own real log above)'
+# simname = 'faasimulated.ulg'  # these are the defaults if you don't load your own data
+# realname = 'faareal.ulg'
+# simdescription = '(Dummy data. Please select your own sim log above)'
+# realdescription = '(Dummy data. Please select your own real log above)'
 sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
 simx_offset = 0
@@ -68,9 +68,9 @@ new_data = True
 read_file_local = False
 new_real = False
 new_sim = False
-metric = 'x'
+# metric = 'x'
 keys = []
-config = []
+# config = [simname, realname, metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
 
 
@@ -130,6 +130,7 @@ def get_data(simname,realname, metric):
     pd_real = pd.DataFrame(real_data, columns = ['real'])
     new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
     new_data = new_data.dropna()   # remove missing values
+    save_settings(config)
     return new_data
     # print(new_data)
     # dfdata = pd.DataFrame(cur_dataset.data) 
@@ -171,8 +172,8 @@ def read_settings():
     metric = config[2]
     simdescription = config[3]
     realdescription = config[4]
-    real_reverse_button.active = config[5]
-    sim_reverse_button.active = config[6]
+    # real_reverse_button.active = config[5]
+    # sim_reverse_button.active = config[6]
     print("simname =", simname)
     print("realname =", realname)
     return config
@@ -209,7 +210,6 @@ def update(selected=None):
 
 def upload_new_data_real(attr, old, new):
     global read_file_local, new_real, realfile, original_data
-    print("one")
     read_file_local = True
     new_real = True
     decoded = base64.b64decode(new)
@@ -289,7 +289,7 @@ def sim_change(attrname, old, new):
     update()   
 
 def get_thiel_analysis_plots(simname, realname):
-    global datalog, original_data,datasource
+    global datalog, original_data, datasource
 
     additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>" 
 
@@ -336,15 +336,13 @@ def get_thiel_analysis_plots(simname, realname):
     curdoc().add_root(layout)
     curdoc().title = "Flight data"
 
-    #     plots = []
 
-    # return plots
 
 print("Now starting Thiel app")
-config = read_settings()  # load last known state
 GET_arguments = curdoc().session_context.request.arguments
-simname = join(DATA_DIR, simname)    # this is the default log file to load if you haven't been given another one
-realname = join(DATA_DIR, realname)    # this is the default log file to load if you haven't been given another one
+config = read_settings()
+# simname = join(DATA_DIR, simname)    # this is the default log file to load if you haven't been given another one
+# realname = join(DATA_DIR, realname)    # this is the default log file to load if you haven't been given another one
 
 
 if GET_arguments is not None and 'log' in GET_arguments:
