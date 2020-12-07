@@ -255,7 +255,7 @@ def update_stats(data):
     sum2 = math.sqrt(sum2)
     sum3 = math.sqrt(sum3)
     TIC = sum1/(sum2 + sum3)
-    stats.text = 'Thiel coefficient: ' + str(round(TIC,3))
+    stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(round(TIC,3))
 
 
 def reverse_sim():
