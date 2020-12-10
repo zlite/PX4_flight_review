@@ -36,7 +36,6 @@ from helper import set_log_id_is_filename, print_cache_info
 from config import debug_print_timing, get_overview_img_filepath
 
 
-import px4tools
 import numpy as np
 import math
 import io
@@ -62,7 +61,6 @@ import copy
 from bokeh.models import Div
 
 
-import pandas as pd
 import argparse
 
 from bokeh.layouts import column, row
