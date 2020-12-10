@@ -52,14 +52,11 @@ from bokeh.application.handlers import DirectoryHandler
 DATA_DIR = join(dirname(__file__), 'datalogs')
 
 
-DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
-STANDARD_TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
-
-simname = 'faasimulated.ulg'
-realname = 'faareal.ulg'
-simdescription = '(Dummy data. Please select your own sim log above)'
-realdescription = '(Dummy data. Please select your own real log above)'
+# simname = 'faasimulated.ulg'  # these are the defaults if you don't load your own data
+# realname = 'faareal.ulg'
+# simdescription = '(Dummy data. Please select your own sim log above)'
+# realdescription = '(Dummy data. Please select your own real log above)'
 sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
 simx_offset = 0
@@ -71,35 +68,13 @@ new_data = True
 read_file_local = False
 new_real = False
 new_sim = False
-metric = 'x'
+# metric = 'x'
 keys = []
-
-# config = [simname, realname, metric, simdescription, realdescription]
-
-# with open('settings', 'wb') as fp:
-#     pickle.dump(config, fp)
+# config = [simname, realname, metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
 
-''' We're now going to load a bunch of state variables to sync the app back to the last known state
 
-The format of the list is as follows:
-config[0] = sim ID
-config[1] = real ID
-config[2] = metric
-config[3] = simdescription
-config[4] = realdesciption
 
-'''
-with open ('settings', 'rb') as fp:
-    config = pickle.load(fp)
-
-simname = config[0]
-realname = config[1]
-metric = config[2]
-simdescription = config[3]
-real_reverse_button = config[4]
-print("simname =", simname)
-print("realname =", realname)
 
 sim_reverse_button = RadioButtonGroup(
         labels=["Sim Default", "Reversed"], active=0)
@@ -134,10 +109,7 @@ def get_data(simname,realname, metric):
     print("Now in get_data")
     dfsim = load_data(simname)
     dfreal = load_data(realname)
-    config[0] = simname
-    config[1] = realname
-    with open('settings', 'wb') as fp:  #save state
-        pickle.dump(config, fp)
+
 
     if read_file_local:    # replace the datalogs with local ones
         if new_real:
@@ -158,11 +130,9 @@ def get_data(simname,realname, metric):
     pd_real = pd.DataFrame(real_data, columns = ['real'])
     new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
     new_data = new_data.dropna()   # remove missing values
+    save_settings(config)
     return new_data
-    # print(new_data)
-    # dfdata = pd.DataFrame(cur_dataset.data) 
-    # data = pd.concat([dfsim, dfreal], axis=1)
-    # data = data.dropna()   # remove missing values
+
     # sim_mean = dfsim.y.mean()  # get the average
     # real_mean = dfreal.y.mean()
     # mean_diff = sim_mean - real_mean 
@@ -171,6 +141,48 @@ def get_data(simname,realname, metric):
     # data['simt'] = dfsim.timestamp
     # data['real'] = dfreal.x
     # data['realt'] = dfreal.timestamp
+
+def update_config():
+    config[0] = simname
+    config[1] = realname
+    config[2] = metric
+    config[3] = simdescription
+    config[4] = realdescription
+    config[5] = 0
+    config[6] = 0
+    return config
+
+def save_settings(config):
+    with open('settings', 'wb') as fp:  #save state
+        pickle.dump(config, fp)
+
+def read_settings():
+    ''' We're now going to load a bunch of state variables to sync the app back to the last known state. The file "settings" should exist in the main directory
+
+        # config = [simname, realname, metric, simdescription, realdescription]
+
+        The format of the list is as follows:
+        config[0] = sim ID
+        config[1] = real ID
+        config[2] = metric
+        config[3] = simdescription
+        config[4] = realdesciption
+        config[5] = real_reverse_button.active
+        config[6] = sim_reverse_button.active
+
+        '''
+    global simname, realname, metric, simdescription, realdescription, real_reverse_button, sim_reverse_button
+    
+    with open ('settings', 'rb') as fp:
+        config = pickle.load(fp)
+    simname = config[0]
+    realname = config[1]
+    metric = config[2]
+    simdescription = config[3]
+    realdescription = config[4]
+    # real_reverse_button.active = config[5]
+    # sim_reverse_button.active = config[6]
+    return config
 
 
 def update(selected=None):
@@ -199,11 +211,13 @@ def update(selected=None):
     if new_data:
         datasource.data = datalog
         new_data = False
+    config = update_config()
+    update_stats(datalog)
+    save_settings(config)
 
 
 def upload_new_data_real(attr, old, new):
     global read_file_local, new_real, realfile, original_data
-    print("one")
     read_file_local = True
     new_real = True
     decoded = base64.b64decode(new)
@@ -225,8 +239,8 @@ def upload_new_data_sim(attr, old, new):
     update()
 
 def update_stats(data):
-    real = np.array(data['realy'])
-    sim = np.array(data['simy'])
+    real = np.array(data['real'])
+    sim = np.array(data['sim'])
     sum1 = 0
     sum2 = 0
     sum3 = 0
@@ -241,19 +255,23 @@ def update_stats(data):
     sum2 = math.sqrt(sum2)
     sum3 = math.sqrt(sum3)
     TIC = sum1/(sum2 + sum3)
-    stats.text = 'Thiel coefficient: ' + str(round(TIC,3))
+    stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(round(TIC,3))
 
 
 def reverse_sim():
-    global sim_polarity, reverse_sim_data
-    if (sim_reverse_button.active == 1): sim_polarity = -1
+    global sim_polarity, reverse_sim_data, config
+    if (sim_reverse_button.active == 1): 
+        sim_polarity = -1
+        config[6] = sim_reverse_button.active
     else: sim_polarity = 1
     reverse_sim_data = True
     update()
 
 def reverse_real():
-    global real_polarity, reverse_real_data
-    if (real_reverse_button.active == 1): real_polarity = -1
+    global real_polarity, reverse_real_data, config
+    if (real_reverse_button.active == 1): 
+        real_polarity = -1
+        config[5] = real_reverse_button.active
     else: real_polarity = 1
     reverse_real_data = True
     update()
@@ -279,10 +297,10 @@ def sim_change(attrname, old, new):
     update()   
 
 def get_thiel_analysis_plots(simname, realname):
-    global datalog, original_data,datasource
+    global datalog, original_data, datasource
 
     additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>" 
-
+    save_settings(config)
     datalog = get_data(simname, realname, metric)
     original_data = copy.deepcopy(datalog)
 
@@ -326,14 +344,14 @@ def get_thiel_analysis_plots(simname, realname):
     curdoc().add_root(layout)
     curdoc().title = "Flight data"
 
-    #     plots = []
 
-    # return plots
 
 print("Now starting Thiel app")
 GET_arguments = curdoc().session_context.request.arguments
-simname = join(DATA_DIR, simname)    # this is the default log file to load if you haven't been given another one
-realname = join(DATA_DIR, realname)    # this is the default log file to load if you haven't been given another one
+config = read_settings()
+print("simname is", simname, "realname is", realname)
+# simname = join(DATA_DIR, simname)    # this is the default log file to load if you haven't been given another one
+# realname = join(DATA_DIR, realname)    # this is the default log file to load if you haven't been given another one
 
 
 if GET_arguments is not None and 'log' in GET_arguments:
