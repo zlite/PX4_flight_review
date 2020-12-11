@@ -3,8 +3,8 @@
 
 
 
-from os import read
-import px4tools
+from os import read, path
+# import px4tools
 import numpy as np
 import math
 import io
@@ -53,10 +53,10 @@ DATA_DIR = join(dirname(__file__), 'datalogs')
 
 
 
-# simname = 'faasimulated.ulg'  # these are the defaults if you don't load your own data
-# realname = 'faareal.ulg'
-# simdescription = '(Dummy data. Please select your own sim log above)'
-# realdescription = '(Dummy data. Please select your own real log above)'
+simname = 'sim.ulg'  # these are the defaults if you don't load your own data
+realname = 'real.ulg'
+simdescription = '(Dummy data. Please select your own sim log above)'
+realdescription = '(Dummy data. Please select your own real log above)'
 sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
 simx_offset = 0
@@ -68,9 +68,9 @@ new_data = True
 read_file_local = False
 new_real = False
 new_sim = False
-# metric = 'x'
+metric = 'x'
 keys = []
-# config = [simname, realname, metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
+config = [simname, realname, metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
 
 
@@ -172,16 +172,25 @@ def read_settings():
 
         '''
     global simname, realname, metric, simdescription, realdescription, real_reverse_button, sim_reverse_button
-    
-    with open ('settings', 'rb') as fp:
-        config = pickle.load(fp)
-    simname = config[0]
-    realname = config[1]
-    metric = config[2]
-    simdescription = config[3]
-    realdescription = config[4]
-    # real_reverse_button.active = config[5]
-    # sim_reverse_button.active = config[6]
+
+    if path.exists('settings'):    
+        with open ('settings', 'rb') as fp:
+            config = pickle.load(fp)
+        simname = config[0]
+        realname = config[1]
+        metric = config[2]
+        simdescription = config[3]
+        realdescription = config[4]
+        # real_reverse_button.active = config[5]
+        # sim_reverse_button.active = config[6]
+    else:   # the app is running for the first time, so start with dummy data
+        simname = "/datalogs/sim.ulg"
+        realname = "/datalogs/real.ulg"
+        metric = 'x'
+        simdescription = "Dummy simulation data"
+        realdescription = "Dummy real data"
+        config = update_config()
+        print("Starting with dummy data", config)
     return config
 
 
