@@ -118,7 +118,7 @@ class UploadHandler(TornadoRequestHandlerBase):
                      'vehicleName'])
                 description = escape(form_data['description'].decode("utf-8"))
                 email = form_data['email'].decode("utf-8")
-                upload_type = 'personal'
+                upload_type = 'flightreport'
                 if 'type' in form_data:
                     upload_type = form_data['type'].decode("utf-8")
                 source = 'webui'

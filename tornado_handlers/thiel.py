@@ -32,7 +32,6 @@ from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource, PreText, Select
 from bokeh.plotting import figure
 
-DATA_DIR = join(dirname(__file__), 'datalogs')
 
 DEFAULT_FIELDS = ['XY', 'LatLon', 'VxVy']
 
@@ -89,15 +88,13 @@ UPLOAD_TEMPLATE = 'thiel.html'
 
 @lru_cache()
 def load_data_sim(simname):
-    fname = join(DATA_DIR, simname)
-    data = pd.read_csv(fname)
+    data = pd.read_csv(simname)
     dfsim = pd.DataFrame(data)
     return dfsim
 
 @lru_cache()
 def load_data_real(realname):
-    fname = join(DATA_DIR, realname)
-    data = pd.read_csv(fname)
+    data = pd.read_csv(realname)
 #   select_data.to_numpy()  # convert to a numpy array
     dfreal = pd.DataFrame(data)
     return dfreal
