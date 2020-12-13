@@ -52,8 +52,8 @@ from bokeh.application.handlers import DirectoryHandler
 
 
 
-simname = 'sim.ulg'  # these are the defaults if you don't load your own data
-realname = 'real.ulg'
+default_simname = 'sim.ulg'  # these are the defaults if you don't load your own data
+default_realname = 'real.ulg'
 simdescription = '(Dummy data. Please select your own sim log above)'
 realdescription = '(Dummy data. Please select your own real log above)'
 sim_polarity = 1  # determines if we should reverse the Y data
@@ -69,7 +69,7 @@ new_real = False
 new_sim = False
 metric = 'x'
 keys = []
-config = [simname, realname, metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
+config = [default_simname, default_realname, metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
 
 
@@ -92,7 +92,12 @@ stats = PreText(text='Thiel Coefficient', width=500)
 def load_data(filename):
     global keys
     fname = os.path.join(get_log_filepath(), filename)
-    ulog = load_ulog_file(fname)
+    if path.exists(fname): 
+        ulog = load_ulog_file(fname)
+    else:
+        print("log does not exist; loading default data instead")
+        fname = os.path.join(get_log_filepath(), 'sim.ulg')
+        ulog = load_ulog_file(fname) 
     data = ulog.data_list
     for d in data:
         data_keys = [f.field_name for f in d.field_data]
