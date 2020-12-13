@@ -49,7 +49,6 @@ from bokeh.application.handlers import DirectoryHandler
 
 #pylint: disable=cell-var-from-loop, undefined-loop-variable,
 
-DATA_DIR = join(dirname(__file__), 'datalogs')
 
 
 
@@ -92,7 +91,7 @@ stats = PreText(text='Thiel Coefficient', width=500)
 # @lru_cache()
 def load_data(filename):
     global keys
-    fname = join(DATA_DIR, filename)
+    fname = os.path.join(get_log_filepath(), filename)
     ulog = load_ulog_file(fname)
     data = ulog.data_list
     for d in data:
@@ -184,8 +183,8 @@ def read_settings():
         # real_reverse_button.active = config[5]
         # sim_reverse_button.active = config[6]
     else:   # the app is running for the first time, so start with dummy data
-        simname = "/datalogs/sim.ulg"
-        realname = "/datalogs/real.ulg"
+        simname = "sim.ulg"
+        realname = "real.ulg"
         metric = 'x'
         simdescription = "Dummy simulation data"
         realdescription = "Dummy real data"
@@ -313,7 +312,7 @@ def get_thiel_analysis_plots(simname, realname):
     datalog = get_data(simname, realname, metric)
     original_data = copy.deepcopy(datalog)
 
-    datatype = Select(value='x', options=keys[3])
+    datatype = Select(value='x', options=keys[0])
 
     datatype.on_change('value', sim_change)
 
@@ -359,8 +358,6 @@ print("Now starting Thiel app")
 GET_arguments = curdoc().session_context.request.arguments
 config = read_settings()
 print("simname is", simname, "realname is", realname)
-# simname = join(DATA_DIR, simname)    # this is the default log file to load if you haven't been given another one
-# realname = join(DATA_DIR, realname)    # this is the default log file to load if you haven't been given another one
 
 
 if GET_arguments is not None and 'log' in GET_arguments:
