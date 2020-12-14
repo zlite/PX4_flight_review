@@ -384,9 +384,8 @@ if GET_arguments is not None and 'log' in GET_arguments:
             realname = os.path.join(get_log_filepath(), ulog_file_name)
             realdescription = file_details[1]
         else:
-            log_id = str(log_args[0], 'utf-8')
-            if not validate_log_id(log_id):
+            if not validate_log_id(templog_id):
                 raise ValueError('Invalid log id: {}'.format(log_id))
-        print('GET[log]={}'.format(log_id))
-        ulog_file_name = get_log_filename(log_id)
+        print('GET[log]={}'.format(templog_id))
+        ulog_file_name = get_log_filename(templog_id)
 get_thiel_analysis_plots(simname, realname)

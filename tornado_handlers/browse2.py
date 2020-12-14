@@ -176,8 +176,10 @@ class Browse2DataRetrievalHandler(tornado.web.RequestHandler):
 
             if sim:
                 templog_id = log_id+"sim"
-            if real:
+            elif real:
                 templog_id = log_id+"real"
+            else:
+                templog_id = log_id
 
             return Columns([
                 counter,
