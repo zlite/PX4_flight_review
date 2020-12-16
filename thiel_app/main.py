@@ -240,6 +240,7 @@ def plot_flight_modes(data_plot, source, flight_mode_changes):
 
     # plot flight mode names as labels
     # they're only visible when the mouse is over the plot
+    print("got to 1")
     if len(labels_text) > 0:
         labels = LabelSet(x='x', y='y', text='text',
                           y_units='screen', level='underlay',
@@ -249,7 +250,8 @@ def plot_flight_modes(data_plot, source, flight_mode_changes):
                           background_fill_color='white',
                           background_fill_alpha=0.8, angle=90/180*np.pi,
                           text_align='right', text_baseline='top')
-        labels.visible = True # initially hidden
+        labels.visible = False # initially hidden
+        print("got to 2")
         p.add_layout(labels)
 
         # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
@@ -395,12 +397,12 @@ def get_thiel_analysis_plots(simname, realname):
     ts1 = figure(plot_width=1000, plot_height=400, tools=tools, x_axis_type='linear')
     ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data: "+ simdescription)
     ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data: " + realdescription)
- 
+
 
     # x_range_offset = (datalog.last_timestamp - datalog.start_timestamp) * 0.05
     # x_range = Range1d(datalog.start_timestamp - x_range_offset, datalog.last_timestamp + x_range_offset)
-    plot_flight_modes(ts1,datasource, sim_flight_mode_changes)
-    plot_flight_modes(ts1,datasource, real_flight_mode_changes)
+    plot_flight_modes(ts1, datasource, sim_flight_mode_changes)
+    plot_flight_modes(ts1, datasource, real_flight_mode_changes)
 
     # set up layout
     widgets = column(datatype,stats)
@@ -411,7 +413,6 @@ def get_thiel_analysis_plots(simname, realname):
     layout = column(main_row, series)
 
     # initialize
-
 
     update()
     curdoc().add_root(intro_text)
