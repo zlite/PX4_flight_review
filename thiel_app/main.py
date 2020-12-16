@@ -105,7 +105,7 @@ stats = PreText(text='Thiel Coefficient', width=500)
 
 # @lru_cache()
 def load_data(filename):
-    global keys, flight_mode_changes
+    global keys
     fname = os.path.join(get_log_filepath(), filename)
     if path.exists(fname): 
         ulog = load_ulog_file(fname)
@@ -114,21 +114,21 @@ def load_data(filename):
         fname = os.path.join(get_log_filepath(), 'sim.ulg')
         ulog = load_ulog_file(fname) 
     data = ulog.data_list
-    flight_mode_changes = get_flight_mode_changes(ulog)
     for d in data:
         data_keys = [f.field_name for f in d.field_data]
         data_keys.remove('timestamp')
         keys.append(data_keys)
     cur_dataset = ulog.get_dataset('vehicle_local_position')
-    return cur_dataset
+    flight_mode_changes = get_flight_mode_changes(ulog)
+    return cur_dataset, flight_mode_changes
 
 
 # @lru_cache()
 def get_data(simname,realname, metric):
-    global new_real, new_sim, read_file_local, realfile, simfile
+    global new_real, new_sim, read_file_local, realfile, simfile, sim_flight_mode_changes, real_flight_mode_changes
     print("Now in get_data")
-    dfsim = load_data(simname)
-    dfreal = load_data(realname)
+    dfsim, sim_flight_mode_changes = load_data(simname)
+    dfreal, real_flight_mode_changes = load_data(realname)
 
 
     if read_file_local:    # replace the datalogs with local ones
@@ -213,7 +213,13 @@ def read_settings():
         print("Starting with dummy data", config)
     return config
 
-def plot_flight_modes(flight_mode_changes):
+def plot_flight_modes(data_plot, source, flight_mode_changes):
+    p = data_plot
+    added_box_annotation_args = {}
+    labels_y_pos = []
+    labels_x_pos = []
+    labels_text = []
+    labels_color = []
     for i in range(len(flight_mode_changes)-1):
         t_start, mode = flight_mode_changes[i]
         t_end, mode_next = flight_mode_changes[i + 1]
@@ -223,21 +229,18 @@ def plot_flight_modes(flight_mode_changes):
                                        fill_alpha=0.09, line_color=None,
                                        fill_color=color,
                                        **added_box_annotation_args)
-            ts1.add_layout(annotation)
+            p.add_layout(annotation)
 
             if flight_mode_changes[i+1][0] - t_start > 1e6: # filter fast
                                                  # switches to avoid overlap
                 labels_text.append(mode_name)
                 labels_x_pos.append(t_start)
-                labels_y_pos.append(labels_y_offset)
                 labels_color.append(color)
 
 
     # plot flight mode names as labels
     # they're only visible when the mouse is over the plot
     if len(labels_text) > 0:
-        source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
-                                            y=labels_y_pos, textcolor=labels_color))
         labels = LabelSet(x='x', y='y', text='text',
                           y_units='screen', level='underlay',
                           source=source, render_mode='canvas',
@@ -246,16 +249,16 @@ def plot_flight_modes(flight_mode_changes):
                           background_fill_color='white',
                           background_fill_alpha=0.8, angle=90/180*np.pi,
                           text_align='right', text_baseline='top')
-        labels.visible = False # initially hidden
-        ts1.add_layout(labels)
+        labels.visible = True # initially hidden
+        p.add_layout(labels)
 
         # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
         code = """
         labels.visible = cb_obj.event_name == "mouseenter";
         """
         callback = CustomJS(args=dict(labels=labels), code=code)
-        ts1.js_on_event(events.MouseEnter, callback)
-        ts1.js_on_event(events.MouseLeave, callback)
+        p.js_on_event(events.MouseEnter, callback)
+        p.js_on_event(events.MouseLeave, callback)
 
 def update(selected=None):
     global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
@@ -392,11 +395,12 @@ def get_thiel_analysis_plots(simname, realname):
     ts1 = figure(plot_width=1000, plot_height=400, tools=tools, x_axis_type='linear')
     ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data: "+ simdescription)
     ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data: " + realdescription)
-    
+ 
 
     # x_range_offset = (datalog.last_timestamp - datalog.start_timestamp) * 0.05
     # x_range = Range1d(datalog.start_timestamp - x_range_offset, datalog.last_timestamp + x_range_offset)
-    # flight_mode_changes = get_flight_mode_changes(datalog)
+    plot_flight_modes(ts1,datasource, sim_flight_mode_changes)
+    plot_flight_modes(ts1,datasource, real_flight_mode_changes)
 
     # set up layout
     widgets = column(datatype,stats)
