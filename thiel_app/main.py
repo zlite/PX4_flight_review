@@ -29,6 +29,7 @@ from configured_plots import *
 from os.path import dirname, join
 
 from config import *
+from colors import HTML_color_to_RGB
 from helper import *
 from leaflet import ulog_to_polyline
 from bokeh.models import CheckboxGroup
@@ -69,11 +70,25 @@ new_real = False
 new_sim = False
 metric = 'x'
 keys = []
+labels_text = []
+labels_color = []
+labels_y_pos = []
+labels_x_pos = []
 config = [default_simname, default_realname, metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
+flight_modes = [
+    {'name': 'Manual', 'color': HTML_color_to_RGB(flight_modes_table[0][1])},
+    {'name': 'Altitude Control', 'color': HTML_color_to_RGB(flight_modes_table[1][1])},
+    {'name': 'Position Control', 'color': HTML_color_to_RGB(flight_modes_table[2][1])},
+    {'name': 'Acro', 'color': HTML_color_to_RGB(flight_modes_table[10][1])},
+    {'name': 'Stabilized', 'color': HTML_color_to_RGB(flight_modes_table[15][1])},
+    {'name': 'Offboard', 'color': HTML_color_to_RGB(flight_modes_table[14][1])},
+    {'name': 'Rattitude', 'color': HTML_color_to_RGB(flight_modes_table[16][1])},
+    {'name': 'Auto (Mission, RTL, Follow, ...)',
+        'color': HTML_color_to_RGB(flight_modes_table[3][1])}
+    ]
 
-
-
+curdoc().template_variables['flight_modes'] = flight_modes
 
 sim_reverse_button = RadioButtonGroup(
         labels=["Sim Default", "Reversed"], active=0)
@@ -90,7 +105,7 @@ stats = PreText(text='Thiel Coefficient', width=500)
 
 # @lru_cache()
 def load_data(filename):
-    global keys
+    global keys, flight_mode_changes
     fname = os.path.join(get_log_filepath(), filename)
     if path.exists(fname): 
         ulog = load_ulog_file(fname)
@@ -99,6 +114,7 @@ def load_data(filename):
         fname = os.path.join(get_log_filepath(), 'sim.ulg')
         ulog = load_ulog_file(fname) 
     data = ulog.data_list
+    flight_mode_changes = get_flight_mode_changes(ulog)
     for d in data:
         data_keys = [f.field_name for f in d.field_data]
         data_keys.remove('timestamp')
@@ -197,6 +213,49 @@ def read_settings():
         print("Starting with dummy data", config)
     return config
 
+def plot_flight_modes(flight_mode_changes):
+    for i in range(len(flight_mode_changes)-1):
+        t_start, mode = flight_mode_changes[i]
+        t_end, mode_next = flight_mode_changes[i + 1]
+        if mode in flight_modes_table:
+            mode_name, color = flight_modes_table[mode]
+            annotation = BoxAnnotation(left=int(t_start), right=int(t_end),
+                                       fill_alpha=0.09, line_color=None,
+                                       fill_color=color,
+                                       **added_box_annotation_args)
+            ts1.add_layout(annotation)
+
+            if flight_mode_changes[i+1][0] - t_start > 1e6: # filter fast
+                                                 # switches to avoid overlap
+                labels_text.append(mode_name)
+                labels_x_pos.append(t_start)
+                labels_y_pos.append(labels_y_offset)
+                labels_color.append(color)
+
+
+    # plot flight mode names as labels
+    # they're only visible when the mouse is over the plot
+    if len(labels_text) > 0:
+        source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
+                                            y=labels_y_pos, textcolor=labels_color))
+        labels = LabelSet(x='x', y='y', text='text',
+                          y_units='screen', level='underlay',
+                          source=source, render_mode='canvas',
+                          text_font_size='10pt',
+                          text_color='textcolor', text_alpha=0.85,
+                          background_fill_color='white',
+                          background_fill_alpha=0.8, angle=90/180*np.pi,
+                          text_align='right', text_baseline='top')
+        labels.visible = False # initially hidden
+        ts1.add_layout(labels)
+
+        # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
+        code = """
+        labels.visible = cb_obj.event_name == "mouseenter";
+        """
+        callback = CustomJS(args=dict(labels=labels), code=code)
+        ts1.js_on_event(events.MouseEnter, callback)
+        ts1.js_on_event(events.MouseLeave, callback)
 
 def update(selected=None):
     global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
@@ -310,7 +369,7 @@ def sim_change(attrname, old, new):
     update()   
 
 def get_thiel_analysis_plots(simname, realname):
-    global datalog, original_data, datasource
+    global datalog, original_data, datasource, ts1
 
     additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>" 
     save_settings(config)
