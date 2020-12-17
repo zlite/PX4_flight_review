@@ -20,6 +20,7 @@ import pickle
 #import thiel_analysis
 from bokeh.io import curdoc,output_file, show
 from bokeh.models.widgets import Div
+from bokeh.models import Title
 from bokeh.layouts import column
 from scipy.interpolate import interp1d
 
@@ -213,34 +214,37 @@ def read_settings():
         print("Starting with dummy data", config)
     return config
 
-def plot_flight_modes(data_plot, source, flight_mode_changes):
-    p = data_plot
+def plot_flight_modes(source, flight_mode_changes):
     added_box_annotation_args = {}
     labels_y_pos = []
     labels_x_pos = []
     labels_text = []
     labels_color = []
+    time_offset, null = flight_mode_changes[0]  # zero base the time
     for i in range(len(flight_mode_changes)-1):
         t_start, mode = flight_mode_changes[i]
+        t_start = t_start - time_offset
         t_end, mode_next = flight_mode_changes[i + 1]
+        t_end = t_end - time_offset
         if mode in flight_modes_table:
             mode_name, color = flight_modes_table[mode]
+            print("Mode name:", mode_name, "Color:", color, "start", int(t_start), "end", int(t_end))
             annotation = BoxAnnotation(left=int(t_start), right=int(t_end),
                                        fill_alpha=0.09, line_color=None,
                                        fill_color=color,
                                        **added_box_annotation_args)
-            p.add_layout(annotation)
+            ts1.add_layout(annotation)
 
             if flight_mode_changes[i+1][0] - t_start > 1e6: # filter fast
                                                  # switches to avoid overlap
                 labels_text.append(mode_name)
                 labels_x_pos.append(t_start)
                 labels_color.append(color)
+        
 
 
     # plot flight mode names as labels
     # they're only visible when the mouse is over the plot
-    print("got to 1")
     if len(labels_text) > 0:
         labels = LabelSet(x='x', y='y', text='text',
                           y_units='screen', level='underlay',
@@ -251,16 +255,7 @@ def plot_flight_modes(data_plot, source, flight_mode_changes):
                           background_fill_alpha=0.8, angle=90/180*np.pi,
                           text_align='right', text_baseline='top')
         labels.visible = False # initially hidden
-        print("got to 2")
-        p.add_layout(labels)
-
-        # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
-        code = """
-        labels.visible = cb_obj.event_name == "mouseenter";
-        """
-        callback = CustomJS(args=dict(labels=labels), code=code)
-        p.js_on_event(events.MouseEnter, callback)
-        p.js_on_event(events.MouseLeave, callback)
+    return labels, annotation
 
 def update(selected=None):
     global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
@@ -401,8 +396,28 @@ def get_thiel_analysis_plots(simname, realname):
 
     # x_range_offset = (datalog.last_timestamp - datalog.start_timestamp) * 0.05
     # x_range = Range1d(datalog.start_timestamp - x_range_offset, datalog.last_timestamp + x_range_offset)
-    plot_flight_modes(ts1, datasource, sim_flight_mode_changes)
-    plot_flight_modes(ts1, datasource, real_flight_mode_changes)
+
+    sim_labels, sim_annotation = plot_flight_modes(datasource, sim_flight_mode_changes)
+    real_labels, real_annotation  = plot_flight_modes(datasource, real_flight_mode_changes)
+
+    ts1.add_layout(sim_annotation)
+    ts1.add_layout(real_annotation)
+
+    # ts1.add_layout(sim_labels)
+    # ts1.add_layout(real_labels)
+
+
+    # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
+    code = """
+    labels.visible = cb_obj.event_name == "mouseenter";
+    """
+    sim_callback = CustomJS(args=dict(labels=sim_labels), code=code)
+    ts1.js_on_event(events.MouseEnter, sim_callback)
+    ts1.js_on_event(events.MouseLeave, sim_callback)
+
+    real_callback = CustomJS(args=dict(labels=real_labels), code=code)
+    ts1.js_on_event(events.MouseEnter, real_callback)
+    ts1.js_on_event(events.MouseLeave, real_callback)
 
     # set up layout
     widgets = column(datatype,stats)
