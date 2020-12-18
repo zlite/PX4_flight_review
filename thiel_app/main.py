@@ -70,6 +70,8 @@ read_file_local = False
 new_real = False
 new_sim = False
 metric = 'x'
+tplot_height = 400
+tplot_width = 1000
 keys = []
 labels_text = []
 labels_color = []
@@ -145,10 +147,12 @@ def get_data(simname,realname, metric):
  
     sim_data = dfsim.data[metric]
     pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
-    sim_time = dfsim.data['timestamp']
-    pd_time = pd.DataFrame(sim_time, columns = ['time'])
     real_data = dfreal.data[metric]
     pd_real = pd.DataFrame(real_data, columns = ['real'])
+    if (len(pd_sim) > len(pd_real)):    # set the y axis based on the longest log time
+        pd_time = pd.DataFrame(dfsim.data['timestamp'], columns = ['time'])
+    else:
+        pd_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
     new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
     new_data = new_data.dropna()   # remove missing values
     save_settings(config)
@@ -214,12 +218,13 @@ def read_settings():
         print("Starting with dummy data", config)
     return config
 
-def plot_flight_modes(source, flight_mode_changes):
+def plot_flight_modes(flight_mode_changes,type):
     added_box_annotation_args = {}
     labels_y_pos = []
     labels_x_pos = []
     labels_text = []
     labels_color = []
+    labels_y_offset = tplot_height - 60
     time_offset, null = flight_mode_changes[0]  # zero base the time
     for i in range(len(flight_mode_changes)-1):
         t_start, mode = flight_mode_changes[i]
@@ -229,16 +234,24 @@ def plot_flight_modes(source, flight_mode_changes):
         if mode in flight_modes_table:
             mode_name, color = flight_modes_table[mode]
             print("Mode name:", mode_name, "Color:", color, "start", int(t_start), "end", int(t_end))
-            annotation = BoxAnnotation(left=int(t_start), right=int(t_end),
-                                       fill_alpha=0.09, line_color=None,
-                                       fill_color=color,
-                                       **added_box_annotation_args)
+            if type == 'sim':
+                annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = 10, bottom = 50, 
+                                        fill_alpha=0.20, line_color=None,
+                                        fill_color=color,
+                                        **added_box_annotation_args)
+            else:
+                annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = 50, bottom = 100,
+                                        fill_alpha=0.09, line_color=None,
+                                        fill_color=color,
+                                        **added_box_annotation_args)
+
             ts1.add_layout(annotation)
 
             if flight_mode_changes[i+1][0] - t_start > 1e6: # filter fast
                                                  # switches to avoid overlap
                 labels_text.append(mode_name)
                 labels_x_pos.append(t_start)
+                labels_y_pos.append(labels_y_offset)
                 labels_color.append(color)
         
 
@@ -246,6 +259,8 @@ def plot_flight_modes(source, flight_mode_changes):
     # plot flight mode names as labels
     # they're only visible when the mouse is over the plot
     if len(labels_text) > 0:
+        source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
+                                            y=labels_y_pos, textcolor=labels_color))
         labels = LabelSet(x='x', y='y', text='text',
                           y_units='screen', level='underlay',
                           source=source, render_mode='canvas',
@@ -254,8 +269,17 @@ def plot_flight_modes(source, flight_mode_changes):
                           background_fill_color='white',
                           background_fill_alpha=0.8, angle=90/180*np.pi,
                           text_align='right', text_baseline='top')
-        labels.visible = False # initially hidden
-    return labels, annotation
+        labels.visible = True # initially hidden
+        ts1.add_layout(labels)
+        
+        # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
+        code = """
+        labels.visible = cb_obj.event_name == "mouseenter";
+        """
+        callback = CustomJS(args=dict(labels=labels), code=code)
+        ts1.js_on_event(events.MouseEnter, callback)
+        ts1.js_on_event(events.MouseLeave, callback)
+
 
 def update(selected=None):
     global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
@@ -389,35 +413,24 @@ def get_thiel_analysis_plots(simname, realname):
 
     tools = 'xpan,wheel_zoom,reset'
     
-    ts1 = figure(plot_width=1000, plot_height=400, tools=tools, x_axis_type='linear')
+    ts1 = figure(plot_width=tplot_width, plot_height=tplot_height, tools=tools, x_axis_type='linear')
     ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data: "+ simdescription)
     ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data: " + realdescription)
 
-
+    ts1.add_layout(Title(text="Time (seconds)", align="center"), "below")
     # x_range_offset = (datalog.last_timestamp - datalog.start_timestamp) * 0.05
     # x_range = Range1d(datalog.start_timestamp - x_range_offset, datalog.last_timestamp + x_range_offset)
 
-    sim_labels, sim_annotation = plot_flight_modes(datasource, sim_flight_mode_changes)
-    real_labels, real_annotation  = plot_flight_modes(datasource, real_flight_mode_changes)
+    plot_flight_modes(sim_flight_mode_changes, 'sim')
+    plot_flight_modes(real_flight_mode_changes, 'real')
 
-    ts1.add_layout(sim_annotation)
-    ts1.add_layout(real_annotation)
+    # ts1.add_layout(sim_annotation)
+    # ts1.add_layout(real_annotation)
 
     # ts1.add_layout(sim_labels)
     # ts1.add_layout(real_labels)
 
 
-    # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
-    code = """
-    labels.visible = cb_obj.event_name == "mouseenter";
-    """
-    sim_callback = CustomJS(args=dict(labels=sim_labels), code=code)
-    ts1.js_on_event(events.MouseEnter, sim_callback)
-    ts1.js_on_event(events.MouseLeave, sim_callback)
-
-    real_callback = CustomJS(args=dict(labels=real_labels), code=code)
-    ts1.js_on_event(events.MouseEnter, real_callback)
-    ts1.js_on_event(events.MouseLeave, real_callback)
 
     # set up layout
     widgets = column(datatype,stats)
