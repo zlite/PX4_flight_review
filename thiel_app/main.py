@@ -224,7 +224,11 @@ def plot_flight_modes(flight_mode_changes,type):
     labels_x_pos = []
     labels_text = []
     labels_color = []
-    labels_y_offset = tplot_height - 60
+    if type == 'sim':
+        labels_y_offset = tplot_height - 60
+    else:
+        labels_y_offset = tplot_height - 120
+
     time_offset, null = flight_mode_changes[0]  # zero base the time
     for i in range(len(flight_mode_changes)-1):
         t_start, mode = flight_mode_changes[i]
