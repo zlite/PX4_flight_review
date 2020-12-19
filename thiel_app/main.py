@@ -79,19 +79,6 @@ labels_y_pos = []
 labels_x_pos = []
 config = [default_simname, default_realname, metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
-flight_modes = [
-    {'name': 'Manual', 'color': HTML_color_to_RGB(flight_modes_table[0][1])},
-    {'name': 'Altitude Control', 'color': HTML_color_to_RGB(flight_modes_table[1][1])},
-    {'name': 'Position Control', 'color': HTML_color_to_RGB(flight_modes_table[2][1])},
-    {'name': 'Acro', 'color': HTML_color_to_RGB(flight_modes_table[10][1])},
-    {'name': 'Stabilized', 'color': HTML_color_to_RGB(flight_modes_table[15][1])},
-    {'name': 'Offboard', 'color': HTML_color_to_RGB(flight_modes_table[14][1])},
-    {'name': 'Rattitude', 'color': HTML_color_to_RGB(flight_modes_table[16][1])},
-    {'name': 'Auto (Mission, RTL, Follow, ...)',
-        'color': HTML_color_to_RGB(flight_modes_table[3][1])}
-    ]
-
-curdoc().template_variables['flight_modes'] = flight_modes
 
 sim_reverse_button = RadioButtonGroup(
         labels=["Sim Default", "Reversed"], active=0)
@@ -240,12 +227,12 @@ def plot_flight_modes(flight_mode_changes,type):
             print("Mode name:", mode_name, "Color:", color, "start", int(t_start), "end", int(t_end))
             if type == 'sim':
                 annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
-                                        fill_alpha=0.20, line_color=None, top_units = 'screen',bottom_units = 'screen',
+                                        fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
                                         fill_color=color,
                                         **added_box_annotation_args)
             else:
                 annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100,
-                                        fill_alpha=0.09, line_color=None, top_units = 'screen',bottom_units = 'screen',
+                                        fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
                                         fill_color=color,
                                         **added_box_annotation_args)
 

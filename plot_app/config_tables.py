@@ -11,18 +11,18 @@ flight_modes_table = {
     15: ('Stabilized', '#0033cc'), # dark blue
     16: ('Rattitude', '#ee9900'), # orange
 
-    # all AUTO-modes use the same color
+    # AUTO-modes
     3: ('Mission', '#6600cc'), # purple
-    4: ('Loiter', '#6600cc'), # purple
-    5: ('Return to Land', '#6600cc'), # purple
+    4: ('Loiter', '#eecc00'), # yellow
+    5: ('Return to Land', '#ee9900'), # orange
     6: ('RC Recovery', '#6600cc'), # purple
     7: ('Return to groundstation', '#6600cc'), # purple
     8: ('Land (engine fail)', '#6600cc'), # purple
     9: ('Land (GPS fail)', '#6600cc'), # purple
     12: ('Descend', '#6600cc'), # purple
     13: ('Terminate', '#6600cc'), # purple
-    17: ('Takeoff', '#6600cc'), # purple
-    18: ('Land', '#6600cc'), # purple
+    17: ('Takeoff', '#0033cc'), # dark blue
+    18: ('Land', '#66cc00'), # olive
     19: ('Follow Target', '#6600cc'), # purple
     20: ('Precision Land', '#6600cc'), # purple
     21: ('Orbit', '#6600cc'), # purple
