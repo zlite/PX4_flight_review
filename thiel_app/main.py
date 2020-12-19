@@ -225,9 +225,9 @@ def plot_flight_modes(flight_mode_changes,type):
     labels_text = []
     labels_color = []
     if type == 'sim':
-        labels_y_offset = tplot_height - 60
+        labels_y_offset = tplot_height - 300
     else:
-        labels_y_offset = tplot_height - 120
+        labels_y_offset = tplot_height - 200
 
     time_offset, null = flight_mode_changes[0]  # zero base the time
     for i in range(len(flight_mode_changes)-1):
@@ -239,13 +239,13 @@ def plot_flight_modes(flight_mode_changes,type):
             mode_name, color = flight_modes_table[mode]
             print("Mode name:", mode_name, "Color:", color, "start", int(t_start), "end", int(t_end))
             if type == 'sim':
-                annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = 10, bottom = 50, 
-                                        fill_alpha=0.20, line_color=None,
+                annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
+                                        fill_alpha=0.20, line_color=None, top_units = 'screen',bottom_units = 'screen',
                                         fill_color=color,
                                         **added_box_annotation_args)
             else:
-                annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = 50, bottom = 100,
-                                        fill_alpha=0.09, line_color=None,
+                annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100,
+                                        fill_alpha=0.09, line_color=None, top_units = 'screen',bottom_units = 'screen',
                                         fill_color=color,
                                         **added_box_annotation_args)
 
@@ -265,11 +265,15 @@ def plot_flight_modes(flight_mode_changes,type):
     if len(labels_text) > 0:
         source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
                                             y=labels_y_pos, textcolor=labels_color))
+        if type == 'sim':
+            label_color = 'orange'
+        else:
+            label_color = 'blue'
         labels = LabelSet(x='x', y='y', text='text',
                           y_units='screen', level='underlay',
                           source=source, render_mode='canvas',
                           text_font_size='10pt',
-                          text_color='textcolor', text_alpha=0.85,
+                          text_color= label_color, text_alpha=0.85,
                           background_fill_color='white',
                           background_fill_alpha=0.8, angle=90/180*np.pi,
                           text_align='right', text_baseline='top')
