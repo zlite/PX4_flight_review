@@ -65,6 +65,8 @@ realx_offset = 0
 read_file = True
 reverse_sim_data = False
 reverse_real_data = False
+swap_sim = False
+swap_real = False
 new_data = True
 read_file_local = False
 new_real = False
@@ -379,9 +381,13 @@ def reverse_real():
     update()
 
 def swap_sim():
+    global swap_sim
+    swap_sim = not swap_sim  #reverse it
     print("Swapping sim")
 
 def swap_real():
+    global swap_real
+    swap_real = not swap_real
     print("Swapping real")
 
 def change_sim_scale(shift):
