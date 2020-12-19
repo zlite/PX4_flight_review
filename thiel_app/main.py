@@ -69,7 +69,8 @@ new_data = True
 read_file_local = False
 new_real = False
 new_sim = False
-metric = 'x'
+sim_metric = 'x'
+real_metric = 'x'
 tplot_height = 400
 tplot_width = 1000
 keys = []
@@ -77,15 +78,21 @@ labels_text = []
 labels_color = []
 labels_y_pos = []
 labels_x_pos = []
-config = [default_simname, default_realname, metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
+config = [default_simname, default_realname, sim_metric, real_metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
 
 sim_reverse_button = RadioButtonGroup(
-        labels=["Sim Default", "Reversed"], active=0)
+        labels=["Sim Default Orientation", "Reversed Orientation"], active=0)
 sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
 real_reverse_button = RadioButtonGroup(
-        labels=["Real Default", "Reversed"], active=0)
+        labels=["Real Default Orientation", "Reversed Orientation"], active=0)
 real_reverse_button.on_change('active', lambda attr, old, new: reverse_real())
+sim_swap_button = RadioButtonGroup(
+        labels=["Sim Default X/Y", "Swapped X/Y"], active=0)
+sim_swap_button.on_change('active', lambda attr, old, new: swap_sim())
+real_swap_button = RadioButtonGroup(
+        labels=["Real Default X/Y", "Swapped X/Y"], active=0)
+real_swap_button.on_change('active', lambda attr, old, new: swap_real())
 
 # set up widgets
 
@@ -114,7 +121,7 @@ def load_data(filename):
 
 
 # @lru_cache()
-def get_data(simname,realname, metric):
+def get_data(simname,realname, sim_metric, real_metric):
     global new_real, new_sim, read_file_local, realfile, simfile, sim_flight_mode_changes, real_flight_mode_changes
     print("Now in get_data")
     dfsim, sim_flight_mode_changes = load_data(simname)
@@ -132,9 +139,9 @@ def get_data(simname,realname, metric):
             new_sim = False
  
  
-    sim_data = dfsim.data[metric]
+    sim_data = dfsim.data[sim_metric]
     pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
-    real_data = dfreal.data[metric]
+    real_data = dfreal.data[real_metric]
     pd_real = pd.DataFrame(real_data, columns = ['real'])
     if (len(pd_sim) > len(pd_real)):    # set the y axis based on the longest log time
         pd_time = pd.DataFrame(dfsim.data['timestamp'], columns = ['time'])
@@ -157,11 +164,12 @@ def get_data(simname,realname, metric):
 def update_config():
     config[0] = simname
     config[1] = realname
-    config[2] = metric
-    config[3] = simdescription
-    config[4] = realdescription
-    config[5] = 0
+    config[2] = sim_metric
+    config[3] = real_metric
+    config[4] = simdescription
+    config[5] = realdescription
     config[6] = 0
+    config[7] = 0
     return config
 
 def save_settings(config):
@@ -171,34 +179,37 @@ def save_settings(config):
 def read_settings():
     ''' We're now going to load a bunch of state variables to sync the app back to the last known state. The file "settings" should exist in the main directory
 
-        # config = [simname, realname, metric, simdescription, realdescription]
+        # config = [simname, realname, sim_metric, real_metric, simdescription, realdescription]
 
         The format of the list is as follows:
         config[0] = sim ID
         config[1] = real ID
-        config[2] = metric
-        config[3] = simdescription
-        config[4] = realdesciption
-        config[5] = real_reverse_button.active
-        config[6] = sim_reverse_button.active
+        config[2] = sim_metric
+        config[3] = real_metric
+        config[4] = simdescription
+        config[5] = realdesciption
+        config[6] = real_reverse_button.active
+        config[7] = sim_reverse_button.active
 
         '''
-    global simname, realname, metric, simdescription, realdescription, real_reverse_button, sim_reverse_button
+    global simname, realname, sim_metric, real_metric, simdescription, realdescription, real_reverse_button, sim_reverse_button
 
     if path.exists('settings'):    
         with open ('settings', 'rb') as fp:
             config = pickle.load(fp)
         simname = config[0]
         realname = config[1]
-        metric = config[2]
-        simdescription = config[3]
-        realdescription = config[4]
+        sim_metric = config[2]        
+        real_metric = config[3]
+        simdescription = config[4]
+        realdescription = config[5]
         # real_reverse_button.active = config[5]
         # sim_reverse_button.active = config[6]
     else:   # the app is running for the first time, so start with dummy data
         simname = "sim.ulg"
         realname = "real.ulg"
-        metric = 'x'
+        sim_metric = 'x'
+        real_metric = 'x'
         simdescription = "Dummy simulation data"
         realdescription = "Dummy real data"
         config = update_config()
@@ -279,8 +290,8 @@ def plot_flight_modes(flight_mode_changes,type):
 def update(selected=None):
     global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
     if (read_file or read_file_local):
-        print("Fetching new data", simname, realname, metric)
-        original_data = get_data(simname, realname, metric)
+        print("Fetching new data", simname, realname, sim_metric, real_metric)
+        original_data = get_data(simname, realname, sim_metric, real_metric)
         datalog = copy.deepcopy(original_data)
         datasource.data = datalog
         read_file = False
@@ -367,6 +378,12 @@ def reverse_real():
     reverse_real_data = True
     update()
 
+def swap_sim():
+    print("Swapping sim")
+
+def swap_real():
+    print("Swapping real")
+
 def change_sim_scale(shift):
     global simx_offset, new_data
     simx_offset = shift
@@ -380,10 +397,12 @@ def change_real_scale(shift):
     update()
 
 def sim_change(attrname, old, new):
-    global metric, read_file, config
+    global sim_metric, real_metric, read_file, config
     print("Sim change:", new)
-    metric = new
-    config[2] = metric # save state
+    sim_metric = new
+    real_metric = new
+    config[2] = sim_metric # save state
+    config[3] = real_metric # save state
     read_file = True
     update()   
 
@@ -392,7 +411,7 @@ def get_thiel_analysis_plots(simname, realname):
 
     additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>" 
     save_settings(config)
-    datalog = get_data(simname, realname, metric)
+    datalog = get_data(simname, realname, sim_metric, real_metric)
     original_data = copy.deepcopy(datalog)
 
     datatype = Select(value='x', options=keys[0])
@@ -431,8 +450,10 @@ def get_thiel_analysis_plots(simname, realname):
     widgets = column(datatype,stats)
     sim_button = column(sim_reverse_button)
     real_button = column(real_reverse_button)
+    sswap_button = column(sim_swap_button)
+    rswap_button = column(real_swap_button)
     main_row = row(widgets)
-    series = column(ts1, sim_button, real_button)
+    series = column(ts1, sim_button, sswap_button, real_button, rswap_button)
     layout = column(main_row, series)
 
     # initialize
