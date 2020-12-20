@@ -65,8 +65,7 @@ realx_offset = 0
 read_file = True
 reverse_sim_data = False
 reverse_real_data = False
-swap_sim = False
-swap_real = False
+refresh = False
 new_data = True
 read_file_local = False
 new_real = False
@@ -123,24 +122,22 @@ def load_data(filename):
 
 
 # @lru_cache()
-def get_data(simname,realname, sim_metric, real_metric):
-    global new_real, new_sim, read_file_local, realfile, simfile, sim_flight_mode_changes, real_flight_mode_changes
+def get_data(simname,realname, sim_metric, real_metric, read_file):
+    global new_real, new_sim, dfsim, dfreal, simfile, sim_flight_mode_changes, real_flight_mode_changes
     print("Now in get_data")
-    dfsim, sim_flight_mode_changes = load_data(simname)
-    dfreal, real_flight_mode_changes = load_data(realname)
-
-
-    if read_file_local:    # replace the datalogs with local ones
-        if new_real:
-            print("Loading in a new real log")
-            dfreal = realfile
-            new_real = False
-        if new_sim:
-            print("Loading in a new sim log")
-            dfsim = simfile
-            new_sim = False
- 
- 
+    if read_file:
+        dfsim, sim_flight_mode_changes = load_data(simname)
+        dfreal, real_flight_mode_changes = load_data(realname)
+        read_file = False
+    # if read_file_local:    # replace the datalogs with local ones
+    #     if new_real:
+    #         print("Loading in a new real log")
+    #         dfreal = realfile
+    #         new_real = False
+    #     if new_sim:
+    #         print("Loading in a new sim log")
+    #         dfsim = simfile
+    #         new_sim = False
     sim_data = dfsim.data[sim_metric]
     pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
     real_data = dfreal.data[real_metric]
@@ -290,16 +287,17 @@ def plot_flight_modes(flight_mode_changes,type):
 
 
 def update(selected=None):
-    global read_file, read_file_local, reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource
-    if (read_file or read_file_local):
-        print("Fetching new data", simname, realname, sim_metric, real_metric)
-        original_data = get_data(simname, realname, sim_metric, real_metric)
-        datalog = copy.deepcopy(original_data)
-        datasource.data = datalog
-        read_file = False
-        read_file_local = False
+    global reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource, refresh
+ 
+    print("Fetching new data", simname, realname, sim_metric, real_metric, read_file)
+ 
+    original_data = get_data(simname, realname, sim_metric, real_metric, read_file)
+    datalog = copy.deepcopy(original_data)
+    datasource.data = datalog
+ 
     print("Sim offset", simx_offset)
     print("Real offset", realx_offset)
+ 
     if reverse_sim_data:
         datalog[['sim']] = sim_polarity * original_data['sim']  # reverse data if necessary
         simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
@@ -315,32 +313,33 @@ def update(selected=None):
     if new_data:
         datasource.data = datalog
         new_data = False
+
     config = update_config()
     update_stats(datalog)
     save_settings(config)
 
 
-def upload_new_data_real(attr, old, new):
-    global read_file_local, new_real, realfile, original_data
-    read_file_local = True
-    new_real = True
-    decoded = base64.b64decode(new)
-    tempfile = io.BytesIO(decoded)
-    tempfile = ULog(tempfile)
-    realfile = tempfile.get_dataset('vehicle_local_position')
-    print("Uploading new real file")
-    update()
+# def upload_new_data_real(attr, old, new):
+#     global read_file_local, new_real, realfile, original_data
+#     read_file_local = True
+#     new_real = True
+#     decoded = base64.b64decode(new)
+#     tempfile = io.BytesIO(decoded)
+#     tempfile = ULog(tempfile)
+#     realfile = tempfile.get_dataset('vehicle_local_position')
+#     print("Uploading new real file")
+#     update()
 
-def upload_new_data_sim(attr, old, new):
-    global read_file_local, new_sim, simfile
-    read_file_local = True
-    new_sim = True
-    decoded = base64.b64decode(new)
-    tempfile = io.BytesIO(decoded)
-    tempfile = ULog(tempfile)
-    simfile = tempfile.get_dataset('vehicle_local_position')
-    print("Uploading new sim file")
-    update()
+# def upload_new_data_sim(attr, old, new):
+#     global read_file_local, new_sim, simfile
+#     read_file_local = True
+#     new_sim = True
+#     decoded = base64.b64decode(new)
+#     tempfile = io.BytesIO(decoded)
+#     tempfile = ULog(tempfile)
+#     simfile = tempfile.get_dataset('vehicle_local_position')
+#     print("Uploading new sim file")
+#     update()
 
 def update_stats(data):
     real = np.array(data['real'])
@@ -381,14 +380,20 @@ def reverse_real():
     update()
 
 def swap_sim():
-    global swap_sim
-    swap_sim = not swap_sim  #reverse it
+    global sim_metric, refresh
+    if sim_metric == 'x': sim_metric = 'y'
+    if sim_metric == 'y': sim_metric = 'x'
     print("Swapping sim")
+    refresh = True
+    update()
 
 def swap_real():
-    global swap_real
-    swap_real = not swap_real
+    global real_metric, refresh
+    if real_metric == 'x': real_metric = 'y'
+    if real_metric == 'y': real_metric = 'x'
     print("Swapping real")
+    refresh = True
+    update()
 
 def change_sim_scale(shift):
     global simx_offset, new_data
@@ -417,7 +422,7 @@ def get_thiel_analysis_plots(simname, realname):
 
     additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>" 
     save_settings(config)
-    datalog = get_data(simname, realname, sim_metric, real_metric)
+    datalog = get_data(simname, realname, sim_metric, real_metric, read_file)
     original_data = copy.deepcopy(datalog)
 
     datatype = Select(value='x', options=keys[0])
