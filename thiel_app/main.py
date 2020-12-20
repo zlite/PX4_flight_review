@@ -93,7 +93,8 @@ sim_swap_button.on_change('active', lambda attr, old, new: swap_sim())
 real_swap_button = RadioButtonGroup(
         labels=["Real Default X/Y", "Swapped X/Y"], active=0)
 real_swap_button.on_change('active', lambda attr, old, new: swap_real())
-
+dividing_line = Div(text="<p><hr></p>",
+width=400, height=20)
 # set up widgets
 
 stats = PreText(text='Thiel Coefficient', width=500)
@@ -428,15 +429,16 @@ def get_thiel_analysis_plots(simname, realname):
     intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=800, height=100, align="center")
     choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
     links_text = Div(text="<table width='100%'><tr><td><h3>" + "</h3></td><td align='left'>" + additional_links+"</td></tr></table>")
-
     datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[]))
     datasource.data = datalog
 
     tools = 'xpan,wheel_zoom,reset'
-    
     ts1 = figure(plot_width=tplot_width, plot_height=tplot_height, tools=tools, x_axis_type='linear')
+
+  #  ts1.add_layout(Legend(), 'right')    # if you want the legend outside of the plot
     ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data: "+ simdescription)
     ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data: " + realdescription)
+    ts1.legend.background_fill_alpha = 0.7   # make the background of the legend more transparent
 
     ts1.add_layout(Title(text="Time (seconds)", align="center"), "below")
     # x_range_offset = (datalog.last_timestamp - datalog.start_timestamp) * 0.05
@@ -444,12 +446,6 @@ def get_thiel_analysis_plots(simname, realname):
 
     plot_flight_modes(sim_flight_mode_changes, 'sim')
     plot_flight_modes(real_flight_mode_changes, 'real')
-
-    # ts1.add_layout(sim_annotation)
-    # ts1.add_layout(real_annotation)
-
-    # ts1.add_layout(sim_labels)
-    # ts1.add_layout(real_labels)
 
 
 
@@ -459,8 +455,9 @@ def get_thiel_analysis_plots(simname, realname):
     real_button = column(real_reverse_button)
     sswap_button = column(sim_swap_button)
     rswap_button = column(real_swap_button)
+    rule = column(dividing_line)
     main_row = row(widgets)
-    series = column(ts1, sim_button, sswap_button, real_button, rswap_button)
+    series = column(ts1, sim_button, sswap_button, rule, real_button, rswap_button)
     layout = column(main_row, series)
 
     # initialize
