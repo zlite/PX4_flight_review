@@ -66,7 +66,6 @@ read_file = True
 reverse_sim_data = False
 reverse_real_data = False
 refresh = False
-new_data = True
 read_file_local = False
 new_real = False
 new_sim = False
@@ -287,7 +286,7 @@ def plot_flight_modes(flight_mode_changes,type):
 
 
 def update(selected=None):
-    global reverse_sim_data, reverse_real_data, new_data, datalog, original_data, new_data, datasource, refresh
+    global reverse_sim_data, reverse_real_data, datalog, original_data, datasource
  
     print("Fetching new data", simname, realname, sim_metric, real_metric, read_file)
  
@@ -310,9 +309,6 @@ def update(selected=None):
         realmin = round(min(datalog[['real']].values)[0])
         datasource.data = datalog
         reverse_real_data = False
-    if new_data:
-        datasource.data = datalog
-        new_data = False
 
     config = update_config()
     update_stats(datalog)
@@ -380,31 +376,31 @@ def reverse_real():
     update()
 
 def swap_sim():
-    global sim_metric, refresh
-    if sim_metric == 'x': sim_metric = 'y'
-    if sim_metric == 'y': sim_metric = 'x'
-    print("Swapping sim")
-    refresh = True
+    global sim_metric
+    print("Swapping sim. Metric is", sim_metric)
+    if sim_metric == 'x': 
+        sim_metric = 'y'
+    else: 
+        sim_metric = 'x'
     update()
 
 def swap_real():
-    global real_metric, refresh
-    if real_metric == 'x': real_metric = 'y'
-    if real_metric == 'y': real_metric = 'x'
-    print("Swapping real")
-    refresh = True
+    global real_metric
+    print("Swapping real. Metric is", real_metric)
+    if real_metric == 'x': 
+        real_metric = 'y'
+    else:
+        real_metric = 'x'
     update()
 
 def change_sim_scale(shift):
-    global simx_offset, new_data
+    global simx_offset
     simx_offset = shift
-    new_data = True
     update()
 
 def change_real_scale(shift):
-    global realx_offset, new_data
+    global realx_offset
     realx_offset = shift
-    new_data = True
     update()
 
 def sim_change(attrname, old, new):
