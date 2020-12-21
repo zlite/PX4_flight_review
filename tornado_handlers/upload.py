@@ -17,7 +17,7 @@ from pyulog import ULog
 from pyulog.px4 import PX4ULog
 
 # this is needed for the following imports
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../plot_app'))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../thiel_app'))
 from db_entry import DBVehicleData, DBData
 from config import get_db_filename, get_http_protocol, get_domain_name, \
     email_notifications_config
@@ -224,7 +224,7 @@ class UploadHandler(TornadoRequestHandlerBase):
 
                 con.commit()
 
-                url = '/plot_app?log='+log_id
+                url = '/thiel_app?log='+log_id
                 full_plot_url = get_http_protocol()+'://'+get_domain_name()+url
                 print(full_plot_url)
 

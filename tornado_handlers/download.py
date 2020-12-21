@@ -14,7 +14,7 @@ import tornado.web
 from pyulog.ulog2kml import convert_ulog2kml
 
 # this is needed for the following imports
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../plot_app'))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../thiel_app'))
 from helper import get_log_filename, validate_log_id, \
     flight_modes_table, load_ulog_file, get_default_parameters
 

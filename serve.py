@@ -149,9 +149,8 @@ applications = {}
 
 if args.show:
     thiel_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'thiel_app')
+    print("this is the main file path", thiel_path)
     handler = DirectoryHandler(filename=thiel_path)
-    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'thiel_app'))
-    applications['/plot_app'] = Application(handler)
     applications['/thiel_app'] = Application(handler)
 
 
@@ -174,7 +173,7 @@ extra_patterns = [
     (r'/dbinfo', DBInfoHandler),
     (r'/top', TopHandler),
     (r'/error_label', UpdateErrorLabelHandler),
-    (r"/stats", RedirectHandler, {"url": "/plot_app?stats=1"}),
+    (r"/stats", RedirectHandler, {"url": "/thiel_app?stats=1"}),
     (r'/overview_img/(.*)', StaticFileHandler, {'path': get_overview_img_filepath()}),
 ]
 
@@ -204,14 +203,14 @@ if args.show:
             if show_3d_page:
                 server.show('/3d?log='+ulog_file)
             elif show_pid_analysis_page:
-                server.show('/plot_app?plots=pid_analysis&log='+ulog_file)
+                server.show('/thiel_app?plots=pid_analysis&log='+ulog_file)
             else:
-                server.show('/plot_app?log='+ulog_file)
+                server.show('/thiel_app?log='+ulog_file)
         elif show_thiel:
             print("showing Thiel app")
             server.show('/thiel_app')
         else:
-            server.show('/top')
+            server.show('/thiel_app')
     server.io_loop.add_callback(show_callback)
 
 
