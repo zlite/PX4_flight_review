@@ -1,8 +1,6 @@
 """ This contains Thiel analysis plots """
 
 
-
-
 from os import read, path
 # import px4tools
 import numpy as np
@@ -93,8 +91,9 @@ sim_swap_button.on_change('active', lambda attr, old, new: swap_sim())
 real_swap_button = RadioButtonGroup(
         labels=["Real Default X/Y", "Swapped X/Y"], active=0)
 real_swap_button.on_change('active', lambda attr, old, new: swap_real())
-dividing_line = Div(text="<p><hr></p>",
-width=400, height=20)
+dividing_line = Div(text="<b>Note:</b> the X/Y coordinate system is set relatively arbitrarily by the drone at startup \
+                            and does not reflect GPS positions or compass direction. So you may find that you need to \
+                            compare one file's X with another's Y or reverse one to achieve alignment ", width=800, height=50)
 # set up widgets
 
 stats = PreText(text='Thiel Coefficient', width=500)
@@ -146,6 +145,8 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         pd_time = pd.DataFrame(dfsim.data['timestamp'], columns = ['time'])
     else:
         pd_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
+    starting_time = pd_time.iat[0,0]
+    pd_time = pd_time['time'] = pd_time['time'] - starting_time  # zero base the time
     new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
     new_data = new_data.dropna()   # remove missing values
     save_settings(config)
@@ -315,29 +316,6 @@ def update(selected=None):
     update_stats(datalog)
     save_settings(config)
 
-
-# def upload_new_data_real(attr, old, new):
-#     global read_file_local, new_real, realfile, original_data
-#     read_file_local = True
-#     new_real = True
-#     decoded = base64.b64decode(new)
-#     tempfile = io.BytesIO(decoded)
-#     tempfile = ULog(tempfile)
-#     realfile = tempfile.get_dataset('vehicle_local_position')
-#     print("Uploading new real file")
-#     update()
-
-# def upload_new_data_sim(attr, old, new):
-#     global read_file_local, new_sim, simfile
-#     read_file_local = True
-#     new_sim = True
-#     decoded = base64.b64decode(new)
-#     tempfile = io.BytesIO(decoded)
-#     tempfile = ULog(tempfile)
-#     simfile = tempfile.get_dataset('vehicle_local_position')
-#     print("Uploading new sim file")
-#     update()
-
 def update_stats(data):
     real = np.array(data['real'])
     sim = np.array(data['sim'])
@@ -422,7 +400,12 @@ def get_thiel_analysis_plots(simname, realname):
     datalog = get_data(simname, realname, sim_metric, real_metric, read_file)
     original_data = copy.deepcopy(datalog)
 
-    datatype = Select(value='x', options=keys[0])
+    for i in range(5):
+        if keys[i][0] == 'x':
+            print ("the datalog that has the x/y data is", i)
+            found_x = i
+    
+    datatype = Select(value='x', options=keys[found_x])
 
     datatype.on_change('value', sim_change)
 
