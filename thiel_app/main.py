@@ -67,6 +67,7 @@ refresh = False
 read_file_local = False
 new_real = False
 new_sim = False
+mission_only = False
 sim_metric = 'x'
 real_metric = 'x'
 tplot_height = 400
@@ -79,6 +80,9 @@ labels_x_pos = []
 config = [default_simname, default_realname, sim_metric, real_metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
 
+mission_mode_button = RadioButtonGroup(
+        labels=["Show all flight modes", "Show only Mission mode"], active=0)
+mission_mode_button.on_change('active', lambda attr, old, new: mission_mode())
 sim_reverse_button = RadioButtonGroup(
         labels=["Sim Default Orientation", "Reversed Orientation"], active=0)
 sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
@@ -91,9 +95,10 @@ sim_swap_button.on_change('active', lambda attr, old, new: swap_sim())
 real_swap_button = RadioButtonGroup(
         labels=["Real Default X/Y", "Swapped X/Y"], active=0)
 real_swap_button.on_change('active', lambda attr, old, new: swap_real())
-dividing_line = Div(text="<b>Note:</b> the X/Y coordinate system is set relatively arbitrarily by the drone at startup \
+spacer = Div(text="<hr>", width=800, height=20)
+explainer = Div(text="<b>Note:</b> the X/Y coordinate system is set relatively arbitrarily by the drone at startup \
                             and does not reflect GPS positions or compass direction. So you may find that you need to \
-                            compare one file's X with another's Y or reverse one to achieve alignment ", width=800, height=50)
+                            compare one file's X with another's Y or reverse one to achieve alignment. ", width=800, height=50)
 # set up widgets
 
 stats = PreText(text='Thiel Coefficient', width=500)
@@ -128,19 +133,14 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         dfsim, sim_flight_mode_changes = load_data(simname)
         dfreal, real_flight_mode_changes = load_data(realname)
         read_file = False
-    # if read_file_local:    # replace the datalogs with local ones
-    #     if new_real:
-    #         print("Loading in a new real log")
-    #         dfreal = realfile
-    #         new_real = False
-    #     if new_sim:
-    #         print("Loading in a new sim log")
-    #         dfsim = simfile
-    #         new_sim = False
     sim_data = dfsim.data[sim_metric]
     pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
     real_data = dfreal.data[real_metric]
     pd_real = pd.DataFrame(real_data, columns = ['real'])
+    if mission_mode:                # only show data for when the drone is in auto modes
+        sim_start, sim_end = get_mission_mode(sim_flight_mode_changes)
+        real_start, real_end = get_mission_mode(real_flight_mode_changes)
+#            s.sort_index().loc[1:6]
     if (len(pd_sim) > len(pd_real)):    # set the y axis based on the longest log time
         pd_time = pd.DataFrame(dfsim.data['timestamp'], columns = ['time'])
     else:
@@ -215,6 +215,24 @@ def read_settings():
         config = update_config()
         print("Starting with dummy data", config)
     return config
+
+def get_mission_mode(flight_mode_changes):
+    time_offset, null = flight_mode_changes[0]  # zero base the time
+    m_start = 0
+    m_end = 0
+    for i in range(len(flight_mode_changes)-1):
+            t_start, mode = flight_mode_changes[i]
+            t_start = t_start - time_offset
+            t_end, mode_next = flight_mode_changes[i + 1]
+            t_end = t_end - time_offset
+            if mode in flight_modes_table:
+                mode_name, color = flight_modes_table[mode]
+                if mode == 'Mission':
+                    print("Found start of Mission mode")
+                    m_start = t_start
+                    m_end = t_end
+            return m_start, m_end
+
 
 def plot_flight_modes(flight_mode_changes,type):
     added_box_annotation_args = {}
@@ -335,6 +353,15 @@ def update_stats(data):
     TIC = sum1/(sum2 + sum3)
     stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(round(TIC,3))
 
+def mission_mode():
+    global mission_only
+    if (mission_mode_button.active == 1):   
+        mission_only = True
+        print("Show only missions")
+    else: mission_only = False
+    update()
+
+
 
 def reverse_sim():
     global sim_polarity, reverse_sim_data, config
@@ -372,16 +399,6 @@ def swap_real():
         real_metric = 'x'
     update()
 
-def change_sim_scale(shift):
-    global simx_offset
-    simx_offset = shift
-    update()
-
-def change_real_scale(shift):
-    global realx_offset
-    realx_offset = shift
-    update()
-
 def sim_change(attrname, old, new):
     global sim_metric, real_metric, read_file, config
     print("Sim change:", new)
@@ -409,7 +426,9 @@ def get_thiel_analysis_plots(simname, realname):
 
     datatype.on_change('value', sim_change)
 
-    intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2>""",width=800, height=100, align="center")
+    intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2> \
+        <p> Load two PX4 datalogs, one a real flight and the other a simulation of that flight, \
+            and see how well they compare. We use the well-known <a href="https://www.vosesoftware.com/riskwiki/Thielinequalitycoefficient.php">Thiel Coefficient</a> to generate a correspondence score""",width=800, height=100, align="center")
     choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
     links_text = Div(text="<table width='100%'><tr><td><h3>" + "</h3></td><td align='left'>" + additional_links+"</td></tr></table>")
     datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[]))
@@ -434,13 +453,15 @@ def get_thiel_analysis_plots(simname, realname):
 
     # set up layout
     widgets = column(datatype,stats)
+    mission_button = column(mission_mode_button)
     sim_button = column(sim_reverse_button)
     real_button = column(real_reverse_button)
     sswap_button = column(sim_swap_button)
     rswap_button = column(real_swap_button)
-    rule = column(dividing_line)
+    rule = column(explainer)
+    space = column(spacer)
     main_row = row(widgets)
-    series = column(ts1, sim_button, sswap_button, rule, real_button, rswap_button)
+    series = column(ts1, mission_button, space, sim_button, sswap_button, rule, real_button, rswap_button)
     layout = column(main_row, series)
 
     # initialize
