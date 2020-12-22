@@ -11,7 +11,7 @@ import sqlite3
 import tornado.web
 
 # this is needed for the following imports
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../plot_app'))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../thiel_app'))
 from config import get_db_filename, get_overview_img_filepath
 from db_entry import DBData, DBDataGenerated
 from helper import flight_modes_table, get_airframe_data, html_long_word_force_break
@@ -36,9 +36,13 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
         draw_counter = int(self.get_argument('draw'))
 
         sim = False
+        real = False
         if search_str == "sim":
             print("Search string is sim")
             sim = True
+        if search_str == "real":
+            print("Search string is real")
+            real = True
 
         json_output = dict()
         json_output['draw'] = draw_counter
@@ -171,38 +175,27 @@ class BrowseDataRetrievalHandler(tornado.web.RequestHandler):
                 image_col += log_id+'.png" alt="Overview Image Load Failed" height=50/>'
 
             if sim:
-                templog_id = log_id+"thiel"
-                return Columns([
-                    counter,
-                    '<a href="plot_app?log='+templog_id+'">'+log_date+'</a>',
-                    image_col,
-                    description,
-                    db_data.mav_type,
-                    airframe,
-                    db_data.sys_hw,
-                    ver_sw,
-                    duration_str,
-                    start_time_str,
-                    db_data.rating_str(),
-                    db_data.num_logged_errors,
-                    flight_modes
-                ], search_only_columns)
+                templog_id = log_id+"sim"
+            elif real:
+                templog_id = log_id+"real"
             else:
-                return Columns([
-                    counter,
-                    '<a href="plot_app?log='+log_id+'">'+log_date+'</a>',
-                    image_col,
-                    description,
-                    db_data.mav_type,
-                    airframe,
-                    db_data.sys_hw,
-                    ver_sw,
-                    duration_str,
-                    start_time_str,
-                    db_data.rating_str(),
-                    db_data.num_logged_errors,
-                    flight_modes
-                ], search_only_columns)
+                templog_id = log_id
+
+            return Columns([
+                counter,
+                '<a href="thiel_app?log='+templog_id+'desc:'+description+'">'+log_date+'</a>',
+                image_col,
+                description,
+                db_data.mav_type,
+                airframe,
+                db_data.sys_hw,
+                ver_sw,
+                duration_str,
+                start_time_str,
+                db_data.rating_str(),
+                db_data.num_logged_errors,
+                flight_modes
+            ], search_only_columns)
 
         # need to fetch all here, because we will do more SQL calls while
         # iterating (having multiple cursor's does not seem to work)

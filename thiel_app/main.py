@@ -133,16 +133,25 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         dfsim, sim_flight_mode_changes = load_data(simname)
         dfreal, real_flight_mode_changes = load_data(realname)
         read_file = False
-    sim_data = dfsim.data[sim_metric]
-    pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
-    real_data = dfreal.data[real_metric]
-    pd_real = pd.DataFrame(real_data, columns = ['real'])
-    if mission_mode:                # only show data for when the drone is in auto modes
+
+    if mission_only:                # only show data for when the drone is in auto modes
         sim_mission_start, sim_mission_end = get_mission_mode(sim_flight_mode_changes)
         real_mission_start, real_mission_end = get_mission_mode(real_flight_mode_changes)
-        dfsim.sort_index().loc[sim_mission_start:sim_mission_end]
-        dfreal.sort_index().loc[real_mission_start:real_mission_end]
-        
+        sim_data = dfsim.data[sim_metric]
+        sim_time = dfsim.data['timestamp']
+        pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
+        pd_sim_time = pd.DataFrame(sim_time, columns = ['time'])
+        new_pd_sim = pd.concat([pd_sim_time,pd_sim], axis=1)
+        print("sim mission start, end", sim_mission_start, sim_mission_end)
+        print("data", new_pd_sim)
+        pd_real.iloc[real_mission_start:real_mission_end] 
+    else:
+        sim_data = dfsim.data[sim_metric]
+        pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
+        real_data = dfreal.data[real_metric]
+        pd_real = pd.DataFrame(real_data, columns = ['real'])
+
+
     if (len(pd_sim) > len(pd_real)):    # set the y axis based on the longest log time
         pd_time = pd.DataFrame(dfsim.data['timestamp'], columns = ['time'])
     else:
@@ -151,6 +160,7 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
     pd_time = pd_time['time'] = pd_time['time'] - starting_time  # zero base the time
     new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
     new_data = new_data.dropna()   # remove missing values
+
     save_settings(config)
     return new_data
 
@@ -229,11 +239,10 @@ def get_mission_mode(flight_mode_changes):
             t_end = t_end - time_offset
             if mode in flight_modes_table:
                 mode_name, color = flight_modes_table[mode]
-                if mode == 'Mission':
-                    print("Found start of Mission mode")
-                    m_start = t_start
-                    m_end = t_end
-            return m_start, m_end
+                if mode_name == 'Mission':
+                    m_start = int(t_start)
+                    m_end = int(t_end)
+    return m_start, m_end
 
 
 def plot_flight_modes(flight_mode_changes,type):
@@ -243,7 +252,7 @@ def plot_flight_modes(flight_mode_changes,type):
     labels_text = []
     labels_color = []
     if type == 'sim':
-        labels_y_offset = tplot_height - 300
+        labels_y_offset = tplot_height - 300      # plot the sim shaded areas below the real ones
     else:
         labels_y_offset = tplot_height - 200
 
@@ -256,16 +265,10 @@ def plot_flight_modes(flight_mode_changes,type):
         if mode in flight_modes_table:
             mode_name, color = flight_modes_table[mode]
             print("Mode name:", mode_name, "Color:", color, "start", int(t_start), "end", int(t_end))
-            if type == 'sim':
-                annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
-                                        fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
-                                        fill_color=color,
-                                        **added_box_annotation_args)
-            else:
-                annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100,
-                                        fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
-                                        fill_color=color,
-                                        **added_box_annotation_args)
+            annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
+                                    fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
+                                    fill_color=color,
+                                    **added_box_annotation_args)
 
             ts1.add_layout(annotation)
 
@@ -414,7 +417,7 @@ def sim_change(attrname, old, new):
 def get_thiel_analysis_plots(simname, realname):
     global datalog, original_data, datasource, ts1
 
-    additional_links= "<b><a href='/browse2?search=sim'>Load Simulation Log</a> <p> <a href='/browse2?search=real'>Load Real Log</a></b>" 
+    additional_links= "<b><a href='/browse?search=sim'>Load Simulation Log</a> <p> <a href='/browse?search=real'>Load Real Log</a></b>" 
     save_settings(config)
     datalog = get_data(simname, realname, sim_metric, real_metric, read_file)
     original_data = copy.deepcopy(datalog)

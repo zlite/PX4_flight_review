@@ -11,7 +11,7 @@ import time
 
 import requests
 
-from plot_app.config_tables import *
+from thiel_app.config_tables import *
 
 
 def get_arguments():

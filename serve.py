@@ -24,7 +24,6 @@ from tornado.web import RedirectHandler
 from tornado_handlers.download import DownloadHandler
 from tornado_handlers.upload import UploadHandler
 from tornado_handlers.browse import BrowseHandler, BrowseDataRetrievalHandler
-from tornado_handlers.browse2 import Browse2Handler, Browse2DataRetrievalHandler
 from tornado_handlers.top import TopHandler
 from tornado_handlers.edit_entry import EditEntryHandler
 from tornado_handlers.db_info_json import DBInfoHandler
@@ -163,8 +162,6 @@ extra_patterns = [
     (r'/upload', UploadHandler),
     (r'/browse', BrowseHandler),
     (r'/browse_data_retrieval', BrowseDataRetrievalHandler),
-    (r'/browse2', Browse2Handler),
-    (r'/browse2_data_retrieval', Browse2DataRetrievalHandler),
     (r'/3d', ThreeDHandler),
     (r'/radio_controller', RadioControllerHandler),
     (r'/edit_entry', EditEntryHandler),
