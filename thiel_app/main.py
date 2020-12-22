@@ -138,9 +138,11 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
     real_data = dfreal.data[real_metric]
     pd_real = pd.DataFrame(real_data, columns = ['real'])
     if mission_mode:                # only show data for when the drone is in auto modes
-        sim_start, sim_end = get_mission_mode(sim_flight_mode_changes)
-        real_start, real_end = get_mission_mode(real_flight_mode_changes)
-#            s.sort_index().loc[1:6]
+        sim_mission_start, sim_mission_end = get_mission_mode(sim_flight_mode_changes)
+        real_mission_start, real_mission_end = get_mission_mode(real_flight_mode_changes)
+        dfsim.sort_index().loc[sim_mission_start:sim_mission_end]
+        dfreal.sort_index().loc[real_mission_start:real_mission_end]
+        
     if (len(pd_sim) > len(pd_real)):    # set the y axis based on the longest log time
         pd_time = pd.DataFrame(dfsim.data['timestamp'], columns = ['time'])
     else:

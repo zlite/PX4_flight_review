@@ -199,18 +199,7 @@ if args.show:
     # we have to defer opening in browser until we start up the server
     def show_callback():
         """ callback to open a browser window after server is fully initialized"""
-        if show_ulog_file:
-            if show_3d_page:
-                server.show('/3d?log='+ulog_file)
-            elif show_pid_analysis_page:
-                server.show('/thiel_app?plots=pid_analysis&log='+ulog_file)
-            else:
-                server.show('/thiel_app?log='+ulog_file)
-        elif show_thiel:
-            print("showing Thiel app")
-            server.show('/thiel_app')
-        else:
-            server.show('/thiel_app')
+        server.show('/thiel_app')
     server.io_loop.add_callback(show_callback)
 
 
