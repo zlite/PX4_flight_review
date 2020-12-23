@@ -141,10 +141,16 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         sim_time = dfsim.data['timestamp']
         pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
         pd_sim_time = pd.DataFrame(sim_time, columns = ['time'])
-        new_pd_sim = pd.concat([pd_sim_time,pd_sim], axis=1)
-        print("sim mission start, end", sim_mission_start, sim_mission_end)
-        print("data", new_pd_sim)
-        pd_real.iloc[real_mission_start:real_mission_end] 
+        temp_pd_sim = pd.concat([pd_sim_time,pd_sim], axis=1)
+        pd_sim = temp_pd_sim.loc[(temp_pd_sim['time'] >= sim_mission_start) & (temp_pd_sim['time'] <= sim_mission_end)]
+        real_data = dfreal.data[real_metric]
+        real_time = dfreal.data['timestamp']
+        pd_real = pd.DataFrame(real_data, columns = ['real'])
+        pd_real_time = pd.DataFrame(real_time, columns = ['time'])
+        temp_pd_real = pd.concat([pd_real_time,pd_real], axis=1)
+        pd_real = temp_pd_real.loc[(temp_pd_real['time'] >= real_mission_start) & (temp_pd_real['time'] <= real_mission_end)]
+ 
+
     else:
         sim_data = dfsim.data[sim_metric]
         pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
@@ -234,9 +240,9 @@ def get_mission_mode(flight_mode_changes):
     m_end = 0
     for i in range(len(flight_mode_changes)-1):
             t_start, mode = flight_mode_changes[i]
-            t_start = t_start - time_offset
+#            t_start = t_start - time_offset
             t_end, mode_next = flight_mode_changes[i + 1]
-            t_end = t_end - time_offset
+#            t_end = t_end - time_offset
             if mode in flight_modes_table:
                 mode_name, color = flight_modes_table[mode]
                 if mode_name == 'Mission':
@@ -422,7 +428,7 @@ def get_thiel_analysis_plots(simname, realname):
     datalog = get_data(simname, realname, sim_metric, real_metric, read_file)
     original_data = copy.deepcopy(datalog)
 
-    for i in range(5):
+    for i in range(10):
         if keys[i][0] == 'x':
             print ("the datalog that has the x/y data is", i)
             found_x = i
