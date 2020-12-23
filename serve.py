@@ -24,7 +24,6 @@ from tornado.web import RedirectHandler
 from tornado_handlers.download import DownloadHandler
 from tornado_handlers.upload import UploadHandler
 from tornado_handlers.browse import BrowseHandler, BrowseDataRetrievalHandler
-from tornado_handlers.top import TopHandler
 from tornado_handlers.edit_entry import EditEntryHandler
 from tornado_handlers.db_info_json import DBInfoHandler
 from tornado_handlers.three_d import ThreeDHandler
@@ -165,10 +164,8 @@ extra_patterns = [
     (r'/3d', ThreeDHandler),
     (r'/radio_controller', RadioControllerHandler),
     (r'/edit_entry', EditEntryHandler),
-    (r'/?', TopHandler), 
     (r'/download', DownloadHandler),
     (r'/dbinfo', DBInfoHandler),
-    (r'/top', TopHandler),
     (r'/error_label', UpdateErrorLabelHandler),
     (r"/stats", RedirectHandler, {"url": "/thiel_app?stats=1"}),
     (r'/overview_img/(.*)', StaticFileHandler, {'path': get_overview_img_filepath()}),
