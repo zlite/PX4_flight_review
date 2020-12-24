@@ -136,35 +136,48 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
 
     if mission_only:                # only show data for when the drone is in auto modes
         sim_mission_start, sim_mission_end = get_mission_mode(sim_flight_mode_changes)
-        real_mission_start, real_mission_end = get_mission_mode(real_flight_mode_changes)
         sim_data = dfsim.data[sim_metric]
         sim_time = dfsim.data['timestamp']
-        pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
+        temp_pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
         pd_sim_time = pd.DataFrame(sim_time, columns = ['time'])
-        temp_pd_sim = pd.concat([pd_sim_time,pd_sim], axis=1)
-        pd_sim = temp_pd_sim.loc[(temp_pd_sim['time'] >= sim_mission_start) & (temp_pd_sim['time'] <= sim_mission_end)]
+        temp2_pd_sim = pd.concat([pd_sim_time,temp_pd_sim], axis=1)
+        pd_sim = temp2_pd_sim.loc[(temp2_pd_sim['time'] >= sim_mission_start) & (temp2_pd_sim['time'] <= sim_mission_end)]  #slice this just to the mission portion
+        pd_sim.drop(columns=['time', 'time','time'])  # we don't need these old time columns anymore
+        print("mission pd_sim", pd_sim)
+
+        real_mission_start, real_mission_end = get_mission_mode(real_flight_mode_changes)
         real_data = dfreal.data[real_metric]
         real_time = dfreal.data['timestamp']
-        pd_real = pd.DataFrame(real_data, columns = ['real'])
+        temp_pd_real = pd.DataFrame(real_data, columns = ['real'])
         pd_real_time = pd.DataFrame(real_time, columns = ['time'])
-        temp_pd_real = pd.concat([pd_real_time,pd_real], axis=1)
-        pd_real = temp_pd_real.loc[(temp_pd_real['time'] >= real_mission_start) & (temp_pd_real['time'] <= real_mission_end)]
+        temp2_pd_real = pd.concat([pd_real_time,temp_pd_real], axis=1)
+        pd_real = temp2_pd_real.loc[(temp2_pd_real['time'] >= real_mission_start) & (temp2_pd_real['time'] <= real_mission_end)] # slice this just to the mission portion
+        pd_real.drop(columns=['time', 'time'])  # we don't need these old time columns anymore
+
+
  
 
     else:
         sim_data = dfsim.data[sim_metric]
         pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
+        pd_sim_time = pd.DataFrame(dfsim.data['timestamp'],columns = ['time'])
         real_data = dfreal.data[real_metric]
         pd_real = pd.DataFrame(real_data, columns = ['real'])
+        pd_real_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
+        print("normal pd_sim", pd_sim)
+    
 
-
-    if (len(pd_sim) > len(pd_real)):    # set the y axis based on the longest log time
-        pd_time = pd.DataFrame(dfsim.data['timestamp'], columns = ['time'])
+    starting_sim_time = pd_sim_time.iat[0,0] 
+    starting_real_time = pd_real_time.iat[0,0]
+    pd_sim_time['time'] = pd_sim_time['time'] = pd_sim_time['time'] - starting_sim_time  # zero base the time
+    pd_real_time['time'] = pd_real_time['time'] = pd_real_time['time'] - starting_real_time  # zero base the time
+ 
+    if len(pd_sim_time) > len(pd_real_time):  # base the y axis on the longest long
+        pd_time = pd_sim_time
     else:
-        pd_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
-    starting_time = pd_time.iat[0,0]
-    pd_time = pd_time['time'] = pd_time['time'] - starting_time  # zero base the time
+        pd_time = pd_real_time
     new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
+    print("new_data", new_data)
     new_data = new_data.dropna()   # remove missing values
 
     save_settings(config)
