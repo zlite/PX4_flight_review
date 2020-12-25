@@ -134,42 +134,59 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         dfreal, real_flight_mode_changes = load_data(realname)
         read_file = False
 
+
     if mission_only:                # only show data for when the drone is in auto modes
-        sim_mission_start, sim_mission_end = get_mission_mode(sim_flight_mode_changes)
         sim_data = dfsim.data[sim_metric]
         temp_pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
+        print('mission dfsim.data', dfsim.data['timestamp'])
         pd_sim_time = pd.DataFrame(dfsim.data['timestamp'], columns = ['time'])
+        starting_sim_time = pd_sim_time.iat[0,0] 
+        pd_sim_time['time'] = pd_sim_time['time'] - starting_sim_time  # zero base the time
+        sim_mission_start, sim_mission_end = get_mission_mode(sim_flight_mode_changes)
+        sim_mission_start = sim_mission_start-starting_sim_time         #zero base the time
+        sim_mission_end = sim_mission_end-starting_sim_time
         temp_pd_sim = pd.concat([pd_sim_time,temp_pd_sim], axis=1)
+        print("Sim mission start, finish", sim_mission_start,sim_mission_end)
         pd_sim = temp_pd_sim.loc[(temp_pd_sim['time'] >= sim_mission_start) & (temp_pd_sim['time'] <= sim_mission_end)]  #slice this just to the mission portion
         pd_sim = pd_sim.drop(columns=['time'])  # we don't need these old time columns anymore
 
-        real_mission_start, real_mission_end = get_mission_mode(real_flight_mode_changes)
+
         real_data = dfreal.data[real_metric]
         temp_pd_real = pd.DataFrame(real_data, columns = ['real'])
+        print('mission dfreal.data', dfreal.data['timestamp'])
         pd_real_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
-        temp2_pd_real = pd.concat([pd_real_time,temp_pd_real], axis=1)
-        pd_real = temp2_pd_real.loc[(temp2_pd_real['time'] >= real_mission_start) & (temp2_pd_real['time'] <= real_mission_end)] # slice this just to the mission portion
+        starting_real_time = pd_real_time.iat[0,0] 
+        print("starting real time", starting_real_time)
+        pd_real_time['time'] = pd_real_time['time'] - starting_real_time  # zero base the time
+        real_mission_start, real_mission_end = get_mission_mode(real_flight_mode_changes)
+        real_mission_start = real_mission_start - starting_real_time  # zero base the starting and stopping time
+        real_mission_end = real_mission_end - starting_real_time
+        temp_pd_real = pd.concat([pd_real_time,temp_pd_real], axis=1)
+        print("Real mission start, finish", real_mission_start,real_mission_end)
+        pd_real = temp_pd_real.loc[(temp_pd_real['time'] >= real_mission_start) & (temp_pd_real['time'] <= real_mission_end)] # slice this just to the mission portion
         pd_real = pd_real.drop(columns=['time'])  # we don't need these old time columns anymore
 
     else:
         sim_data = dfsim.data[sim_metric]
         pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
-        print('dfsim.data', dfsim.data)
+        print('regular dfsim.data', dfsim.data['timestamp'])
         pd_sim_time = pd.DataFrame(dfsim.data['timestamp'],columns = ['time'])
+        starting_sim_time = pd_sim_time.iat[0,0] 
+        pd_sim_time['time'] = pd_sim_time['time'] - starting_sim_time  # zero base the time
+
         real_data = dfreal.data[real_metric]
         pd_real = pd.DataFrame(real_data, columns = ['real'])
         pd_real_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
+        starting_real_time = pd_real_time.iat[0,0] 
+        pd_real_time['time'] = pd_real_time['time'] - starting_real_time  # zero base the time
 
-    
+
     print("pd_sim", pd_sim)
     print("pd_sim_time", pd_sim_time)
     print("pd_real", pd_real)
     print("pd_real_time", pd_real_time)
-    starting_sim_time = pd_sim_time.iat[0,0] 
-    starting_real_time = pd_real_time.iat[0,0]
     print("starting sim, real time", starting_sim_time, starting_real_time)
-    pd_sim_time['time'] = pd_sim_time['time'] - starting_sim_time  # zero base the time
-    pd_real_time['time'] = pd_real_time['time'] - starting_real_time  # zero base the time
+
  
     if len(pd_sim_time) > len(pd_real_time):  # base the y axis on the longest long
         pd_time = pd_sim_time
@@ -247,7 +264,7 @@ def read_settings():
     return config
 
 def get_mission_mode(flight_mode_changes):
-    time_offset, null = flight_mode_changes[0]  # zero base the time
+    # time_offset, null = flight_mode_changes[0]  # zero base the time
     m_start = 0
     m_end = 0
     for i in range(len(flight_mode_changes)-1):
@@ -354,27 +371,30 @@ def update(selected=None):
         reverse_real_data = False
 
     config = update_config()
-    update_stats(datalog)
+    thiel = update_stats(datalog)
+    stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(thiel)
     save_settings(config)
 
 def update_stats(data):
     real = np.array(data['real'])
     sim = np.array(data['sim'])
-    sum1 = 0
-    sum2 = 0
-    sum3 = 0
-    for n in range(len(real)):
-        sum1 = sum1 + (real[int(n)]-sim[int(n)])**2
-        sum2 = sum2 + real[int(n)]**2
-        sum3 = sum3 + sim[int(n)]**2
-    sum1 = 1/len(real) * sum1
-    sum2 = 1/len(real) * sum2
-    sum3 = 1/len(real) * sum3
-    sum1 = math.sqrt(sum1)
-    sum2 = math.sqrt(sum2)
-    sum3 = math.sqrt(sum3)
-    TIC = sum1/(sum2 + sum3)
-    stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(round(TIC,3))
+    if (len(real) != 0) and (len(sim) !=0):  # avoid divide by zero errors
+        sum1 = 0
+        sum2 = 0
+        sum3 = 0
+        for n in range(len(real)):
+            sum1 = sum1 + (real[int(n)]-sim[int(n)])**2
+            sum2 = sum2 + real[int(n)]**2
+            sum3 = sum3 + sim[int(n)]**2
+        sum1 = 1/len(real) * sum1
+        sum2 = 1/len(real) * sum2
+        sum3 = 1/len(real) * sum3
+        sum1 = math.sqrt(sum1)
+        sum2 = math.sqrt(sum2)
+        sum3 = math.sqrt(sum3)
+        stats = sum1/(sum2 + sum3)
+        stats = round(stats,3)
+    return stats
 
 def mission_mode():
     global mission_only
