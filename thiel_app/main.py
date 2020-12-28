@@ -129,6 +129,7 @@ def load_data(filename):
 def get_data(simname,realname, sim_metric, real_metric, read_file):
     global new_real, new_sim, dfsim, dfreal, simfile, sim_flight_mode_changes, real_flight_mode_changes
     print("Now in get_data")
+    
     if read_file:
         dfsim, sim_flight_mode_changes = load_data(simname)
         dfreal, real_flight_mode_changes = load_data(realname)
