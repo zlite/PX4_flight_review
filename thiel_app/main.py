@@ -151,6 +151,7 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
 
         real_data = dfreal.data[real_metric]
         temp_pd_real = pd.DataFrame(real_data, columns = ['real'])
+        print("real modes", real_flight_mode_changes)
         print('mission dfreal.data', dfreal.data['timestamp'])
         pd_real_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
         starting_real_time = pd_real_time.iat[0,0] 
@@ -164,7 +165,11 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         print("Real mission start, finish", real_mission_start,real_mission_end)
         print("Pd real before", temp_pd_real)
         pd_real = temp_pd_real.loc[(temp_pd_real['time'] >= real_mission_start) & (temp_pd_real['time'] <= real_mission_end)] # slice this just to the mission portion
+<<<<<<< HEAD
         print("Pd real after", pd_real)
+=======
+        print("sliced data", pd_real)
+>>>>>>> 35a1295a75f5471781ea00aab7c083ba41f9a621
         pd_real = pd_real.drop(columns=['time'])  # we don't need these old time columns anymore
 
     else:
@@ -275,6 +280,9 @@ def get_mission_mode(flight_mode_changes):
 
 
 def plot_flight_modes(flight_mode_changes,type):
+    global annotation, labels, ts1
+
+
     added_box_annotation_args = {}
     labels_y_pos = []
     labels_x_pos = []
@@ -291,15 +299,30 @@ def plot_flight_modes(flight_mode_changes,type):
         t_start = t_start - time_offset
         t_end, mode_next = flight_mode_changes[i + 1]
         t_end = t_end - time_offset
+        try: 
+            ts1.renderers.remove(annotation) #clear previous annotation
+        except:
+            print("Must be the first time we set up annotations, so nothing to remove yet")
         if mode in flight_modes_table:
             mode_name, color = flight_modes_table[mode]
             print("Mode name:", mode_name, "Color:", color, "start", int(t_start), "end", int(t_end))
-            annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
+            if mission_only:
+                if mode_name is 'Mission':
+                    annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
+                                        fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
+                                        fill_color=color,
+                                        **added_box_annotation_args)
+                    annotation.visible = True
+            else:
+                annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
                                     fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
                                     fill_color=color,
                                     **added_box_annotation_args)
-
+                annotation.visible = False
             ts1.add_layout(annotation)
+            print("ts1 renders", ts1.renderers)
+#            ts1.renderers.remove(annotation) #clear previous annotation
+
 
             if flight_mode_changes[i+1][0] - t_start > 1e6: # filter fast
                                                  # switches to avoid overlap
@@ -363,6 +386,18 @@ def update(selected=None):
         realmin = round(min(datalog[['real']].values)[0])
         datasource.data = datalog
         reverse_real_data = False
+
+    plot_flight_modes(sim_flight_mode_changes, 'sim')
+    plot_flight_modes(real_flight_mode_changes, 'real')
+
+#     if mission_only:  # don't plot modes if you're only showing mission mode
+#         print("Now in mission-only mode")
+# #        curdoc().clear()
+#         chart.children.remove(ts1)
+
+
+
+    
 
     config = update_config()
     thiel = update_stats(datalog)
@@ -447,7 +482,7 @@ def sim_change(attrname, old, new):
     update()   
 
 def get_thiel_analysis_plots(simname, realname):
-    global datalog, original_data, datasource, ts1
+    global datalog, original_data, datasource, layout, ts1, chart
 
     additional_links= "<b><a href='/browse?search=sim'>Load Simulation Log</a> <p> <a href='/browse?search=real'>Load Real Log</a></b>" 
     save_settings(config)
@@ -483,8 +518,10 @@ def get_thiel_analysis_plots(simname, realname):
     # x_range_offset = (datalog.last_timestamp - datalog.start_timestamp) * 0.05
     # x_range = Range1d(datalog.start_timestamp - x_range_offset, datalog.last_timestamp + x_range_offset)
 
+
     plot_flight_modes(sim_flight_mode_changes, 'sim')
     plot_flight_modes(real_flight_mode_changes, 'real')
+    
 
 
 
@@ -498,8 +535,9 @@ def get_thiel_analysis_plots(simname, realname):
     rule = column(explainer)
     space = column(spacer)
     main_row = row(widgets)
-    series = column(ts1, mission_button, space, sim_button, sswap_button, rule, real_button, rswap_button)
-    layout = column(main_row, series)
+    chart = column(ts1)
+    buttons = column(mission_button, space, sim_button, sswap_button, rule, real_button, rswap_button)
+    layout = column(main_row, chart, buttons)
 
     # initialize
 
