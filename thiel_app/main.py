@@ -138,7 +138,6 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
     if mission_only:                # only show data for when the drone is in auto modes
         sim_data = dfsim.data[sim_metric]
         temp_pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
-        print('mission dfsim.data', dfsim.data['timestamp'])
         pd_sim_time = pd.DataFrame(dfsim.data['timestamp'], columns = ['time'])
         starting_sim_time = pd_sim_time.iat[0,0] 
         pd_sim_time['time'] = pd_sim_time['time'] - starting_sim_time  # zero base the time
@@ -146,7 +145,6 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         sim_mission_start = sim_mission_start-starting_sim_time         #zero base the time
         sim_mission_end = sim_mission_end-starting_sim_time
         temp_pd_sim = pd.concat([pd_sim_time,temp_pd_sim], axis=1)
-        print("Sim mission start, finish", sim_mission_start,sim_mission_end)
         pd_sim = temp_pd_sim.loc[(temp_pd_sim['time'] >= sim_mission_start) & (temp_pd_sim['time'] <= sim_mission_end)]  #slice this just to the mission portion
         pd_sim = pd_sim.drop(columns=['time'])  # we don't need these old time columns anymore
 
@@ -158,18 +156,20 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         starting_real_time = pd_real_time.iat[0,0] 
         print("starting real time", starting_real_time)
         pd_real_time['time'] = pd_real_time['time'] - starting_real_time  # zero base the time
+        print("flight mode changes", real_flight_mode_changes)
         real_mission_start, real_mission_end = get_mission_mode(real_flight_mode_changes)
         real_mission_start = real_mission_start - starting_real_time  # zero base the starting and stopping time
         real_mission_end = real_mission_end - starting_real_time
         temp_pd_real = pd.concat([pd_real_time,temp_pd_real], axis=1)
         print("Real mission start, finish", real_mission_start,real_mission_end)
+        print("Pd real before", temp_pd_real)
         pd_real = temp_pd_real.loc[(temp_pd_real['time'] >= real_mission_start) & (temp_pd_real['time'] <= real_mission_end)] # slice this just to the mission portion
+        print("Pd real after", pd_real)
         pd_real = pd_real.drop(columns=['time'])  # we don't need these old time columns anymore
 
     else:
         sim_data = dfsim.data[sim_metric]
         pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
-        print('regular dfsim.data', dfsim.data['timestamp'])
         pd_sim_time = pd.DataFrame(dfsim.data['timestamp'],columns = ['time'])
         starting_sim_time = pd_sim_time.iat[0,0] 
         pd_sim_time['time'] = pd_sim_time['time'] - starting_sim_time  # zero base the time
@@ -180,12 +180,6 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         starting_real_time = pd_real_time.iat[0,0] 
         pd_real_time['time'] = pd_real_time['time'] - starting_real_time  # zero base the time
 
-
-    print("pd_sim", pd_sim)
-    print("pd_sim_time", pd_sim_time)
-    print("pd_real", pd_real)
-    print("pd_real_time", pd_real_time)
-    print("starting sim, real time", starting_sim_time, starting_real_time)
 
  
     if len(pd_sim_time) > len(pd_real_time):  # base the y axis on the longest long
