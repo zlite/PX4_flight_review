@@ -77,6 +77,8 @@ labels_text = []
 labels_color = []
 labels_y_pos = []
 labels_x_pos = []
+annotations = []
+annotation_counter = 0
 config = [default_simname, default_realname, sim_metric, real_metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
 
@@ -129,7 +131,7 @@ def load_data(filename):
 def get_data(simname,realname, sim_metric, real_metric, read_file):
     global new_real, new_sim, dfsim, dfreal, simfile, sim_flight_mode_changes, real_flight_mode_changes
     print("Now in get_data")
-    
+
     if read_file:
         dfsim, sim_flight_mode_changes = load_data(simname)
         dfreal, real_flight_mode_changes = load_data(realname)
@@ -153,7 +155,7 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         real_data = dfreal.data[real_metric]
         temp_pd_real = pd.DataFrame(real_data, columns = ['real'])
         print("real modes", real_flight_mode_changes)
-        print('mission dfreal.data', dfreal.data['timestamp'])
+#        print('mission dfreal.data', dfreal.data['timestamp'])
         pd_real_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
         starting_real_time = pd_real_time.iat[0,0] 
         print("starting real time", starting_real_time)
@@ -166,11 +168,7 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         print("Real mission start, finish", real_mission_start,real_mission_end)
         print("Pd real before", temp_pd_real)
         pd_real = temp_pd_real.loc[(temp_pd_real['time'] >= real_mission_start) & (temp_pd_real['time'] <= real_mission_end)] # slice this just to the mission portion
-<<<<<<< HEAD
         print("Pd real after", pd_real)
-=======
-        print("sliced data", pd_real)
->>>>>>> 35a1295a75f5471781ea00aab7c083ba41f9a621
         pd_real = pd_real.drop(columns=['time'])  # we don't need these old time columns anymore
 
     else:
@@ -281,14 +279,15 @@ def get_mission_mode(flight_mode_changes):
 
 
 def plot_flight_modes(flight_mode_changes,type):
-    global annotation, labels, ts1
+    global annotations, labels, annotation_counter, annotation, ts1
 
-
-    added_box_annotation_args = {}
+    if annotation_counter != 0:
+        annotations[annotation_counter-1].visible = False  # turn off the previous annotations
     labels_y_pos = []
     labels_x_pos = []
     labels_text = []
     labels_color = []
+    added_box_annotation_args = {}
     if type == 'sim':
         labels_y_offset = tplot_height - 300      # plot the sim shaded areas below the real ones
     else:
@@ -300,29 +299,24 @@ def plot_flight_modes(flight_mode_changes,type):
         t_start = t_start - time_offset
         t_end, mode_next = flight_mode_changes[i + 1]
         t_end = t_end - time_offset
-        try: 
-            ts1.renderers.remove(annotation) #clear previous annotation
-        except:
-            print("Must be the first time we set up annotations, so nothing to remove yet")
         if mode in flight_modes_table:
             mode_name, color = flight_modes_table[mode]
             print("Mode name:", mode_name, "Color:", color, "start", int(t_start), "end", int(t_end))
             if mission_only:
-                if mode_name is 'Mission':
+                if mode_name == 'Mission':
                     annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
                                         fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
-                                        fill_color=color,
-                                        **added_box_annotation_args)
+                                        fill_color=color, **added_box_annotation_args)
                     annotation.visible = True
             else:
                 annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
                                     fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
-                                    fill_color=color,
-                                    **added_box_annotation_args)
-                annotation.visible = False
+                                    fill_color=color, **added_box_annotation_args)
+                annotation.visible = True
+            annotations.append(annotation)   # add the box to the list of annotations, so we can remove it if necessary later
+            annotation_counter = annotation_counter + 1  # increment the list of annotations
             ts1.add_layout(annotation)
-            print("ts1 renders", ts1.renderers)
-#            ts1.renderers.remove(annotation) #clear previous annotation
+
 
 
             if flight_mode_changes[i+1][0] - t_start > 1e6: # filter fast
@@ -353,6 +347,7 @@ def plot_flight_modes(flight_mode_changes,type):
                           text_align='right', text_baseline='top')
         labels.visible = True # initially hidden
         ts1.add_layout(labels)
+#        annotation_counter = annotation_counter + 1  # increment the list of annotations
         
         # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
         code = """
@@ -361,6 +356,7 @@ def plot_flight_modes(flight_mode_changes,type):
         callback = CustomJS(args=dict(labels=labels), code=code)
         ts1.js_on_event(events.MouseEnter, callback)
         ts1.js_on_event(events.MouseLeave, callback)
+
 
 
 def update(selected=None):
@@ -408,6 +404,7 @@ def update(selected=None):
 def update_stats(data):
     real = np.array(data['real'])
     sim = np.array(data['sim'])
+    stats = 0
     if (len(real) != 0) and (len(sim) !=0):  # avoid divide by zero errors
         sum1 = 0
         sum2 = 0
@@ -431,7 +428,9 @@ def mission_mode():
     if (mission_mode_button.active == 1):   
         mission_only = True
         print("Show only missions")
-    else: mission_only = False
+    else: 
+        mission_only = False
+        print("Show all modes")
     update()
 
 
@@ -483,7 +482,7 @@ def sim_change(attrname, old, new):
     update()   
 
 def get_thiel_analysis_plots(simname, realname):
-    global datalog, original_data, datasource, layout, ts1, chart
+    global datalog, original_data, datasource, layout, ts1, chart, annotation_counter
 
     additional_links= "<b><a href='/browse?search=sim'>Load Simulation Log</a> <p> <a href='/browse?search=real'>Load Real Log</a></b>" 
     save_settings(config)
@@ -516,6 +515,7 @@ def get_thiel_analysis_plots(simname, realname):
     ts1.legend.background_fill_alpha = 0.7   # make the background of the legend more transparent
 
     ts1.add_layout(Title(text="Time (seconds)", align="center"), "below")
+ #   annotation_counter = annotation_counter + 1  # increment the list of annotations
     # x_range_offset = (datalog.last_timestamp - datalog.start_timestamp) * 0.05
     # x_range = Range1d(datalog.start_timestamp - x_range_offset, datalog.last_timestamp + x_range_offset)
 
