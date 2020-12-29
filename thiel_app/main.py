@@ -281,8 +281,9 @@ def get_mission_mode(flight_mode_changes):
 def plot_flight_modes(flight_mode_changes,type):
     global annotations, labels, annotation_counter, annotation, ts1
 
-    if annotation_counter != 0:
-        annotations[annotation_counter-1].visible = False  # turn off the previous annotations
+    if mission_only:
+        for i in range(annotation_counter):
+            annotations[i].visible = False  # turn off the previous annotations
     labels_y_pos = []
     labels_x_pos = []
     labels_text = []
