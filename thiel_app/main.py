@@ -78,7 +78,11 @@ labels_color = []
 labels_y_pos = []
 labels_x_pos = []
 annotations = []
+mission_annotations = []
+labels = []
+label_counter = 0
 annotation_counter = 0
+mission_annotation_counter = 0
 config = [default_simname, default_realname, sim_metric, real_metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
 
@@ -279,11 +283,13 @@ def get_mission_mode(flight_mode_changes):
 
 
 def plot_flight_modes(flight_mode_changes,type):
-    global annotations, labels, annotation_counter, annotation, ts1
+    global annotations, mission_annotations, labels, annotation_counter, mission_annotation_counter, labels, label_counter, annotation, ts1
 
     if mission_only:
         for i in range(annotation_counter):
             annotations[i].visible = False  # turn off the previous annotations
+        for i in range(label_counter):
+            labels[i].visible = False
     labels_y_pos = []
     labels_x_pos = []
     labels_text = []
@@ -306,16 +312,18 @@ def plot_flight_modes(flight_mode_changes,type):
             if mission_only:
                 if mode_name == 'Mission':
                     annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
-                                        fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
+                                        fill_alpha=0.015, line_color='black', top_units = 'screen',bottom_units = 'screen',
                                         fill_color=color, **added_box_annotation_args)
                     annotation.visible = True
+                    mission_annotations.append(annotation)   # add the box to the list of annotations, so we can remove it if necessary later
+                    mission_annotation_counter = mission_annotation_counter + 1  # increment the list of annotations
             else:
                 annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
                                     fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
                                     fill_color=color, **added_box_annotation_args)
                 annotation.visible = True
-            annotations.append(annotation)   # add the box to the list of annotations, so we can remove it if necessary later
-            annotation_counter = annotation_counter + 1  # increment the list of annotations
+                annotations.append(annotation)   # add the box to the list of annotations, so we can remove it if necessary later
+                annotation_counter = annotation_counter + 1  # increment the list of annotations
             ts1.add_layout(annotation)
 
 
@@ -328,35 +336,36 @@ def plot_flight_modes(flight_mode_changes,type):
                 labels_color.append(color)
         
 
-
-    # plot flight mode names as labels
-    # they're only visible when the mouse is over the plot
-    if len(labels_text) > 0:
-        source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
-                                            y=labels_y_pos, textcolor=labels_color))
-        if type == 'sim':
-            label_color = 'orange'
-        else:
-            label_color = 'blue'
-        labels = LabelSet(x='x', y='y', text='text',
-                          y_units='screen', level='underlay',
-                          source=source, render_mode='canvas',
-                          text_font_size='10pt',
-                          text_color= label_color, text_alpha=0.85,
-                          background_fill_color='white',
-                          background_fill_alpha=0.8, angle=90/180*np.pi,
-                          text_align='right', text_baseline='top')
-        labels.visible = True # initially hidden
-        ts1.add_layout(labels)
-#        annotation_counter = annotation_counter + 1  # increment the list of annotations
-        
-        # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
-        code = """
-        labels.visible = cb_obj.event_name == "mouseenter";
-        """
-        callback = CustomJS(args=dict(labels=labels), code=code)
-        ts1.js_on_event(events.MouseEnter, callback)
-        ts1.js_on_event(events.MouseLeave, callback)
+    if not mission_only:
+        # plot flight mode names as labels
+        # they're only visible when the mouse is over the plot
+        if len(labels_text) > 0:
+            source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
+                                                y=labels_y_pos, textcolor=labels_color))
+            if type == 'sim':
+                label_color = 'orange'
+            else:
+                label_color = 'blue'
+            label = LabelSet(x='x', y='y', text='text',
+                            y_units='screen', level='underlay',
+                            source=source, render_mode='canvas',
+                            text_font_size='10pt',
+                            text_color= label_color, text_alpha=0.85,
+                            background_fill_color='white',
+                            background_fill_alpha=0.8, angle=90/180*np.pi,
+                            text_align='right', text_baseline='top')
+            labels.append(label)   # add the label to the list of labels, so we can remove it if necessary later
+            label_counter = label_counter + 1  # increment the list of labels
+            label.visible = True # initially hidden
+            ts1.add_layout(label)
+            
+            # # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
+            # code = """
+            # label.visible = cb_obj.event_name == "mouseenter";
+            # """
+            # callback = CustomJS(args=dict(labels=label), code=code)
+            # ts1.js_on_event(events.MouseEnter, callback)
+            # ts1.js_on_event(events.MouseLeave, callback)
 
 
 
@@ -425,12 +434,15 @@ def update_stats(data):
     return stats
 
 def mission_mode():
-    global mission_only
+    global mission_only, mission_annotations
     if (mission_mode_button.active == 1):   
         mission_only = True
         print("Show only missions")
+
     else: 
         mission_only = False
+        for i in range(mission_annotation_counter):
+            mission_annotations[i].visible = False  # turn off the previous annotations
         print("Show all modes")
     update()
 
