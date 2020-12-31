@@ -144,15 +144,15 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
 
     if mission_only:                # only show data for when the drone is in auto modes
         sim_data = dfsim.data[sim_metric]
-        temp_pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
-        pd_sim_time = pd.DataFrame(dfsim.data['timestamp'], columns = ['time'])
-        starting_sim_time = pd_sim_time.iat[0,0] 
-        pd_sim_time['time'] = pd_sim_time['time'] - starting_sim_time  # zero base the time
+        temp_pd_sim = pd.DataFrame(sim_data, columns = ['sim'])  # create one dataframe that's just the flight data for the selected metric
+        pd_sim_time = pd.DataFrame(dfsim.data['timestamp'],columns = ['time'])  
         sim_mission_start, sim_mission_end = get_mission_mode(sim_flight_mode_changes)
-        sim_mission_start = sim_mission_start-starting_sim_time         #zero base the time
-        sim_mission_end = sim_mission_end-starting_sim_time
         temp_pd_sim = pd.concat([pd_sim_time,temp_pd_sim], axis=1)
         pd_sim = temp_pd_sim.loc[(temp_pd_sim['time'] >= sim_mission_start) & (temp_pd_sim['time'] <= sim_mission_end)]  #slice this just to the mission portion
+        starting_sim_time = pd_sim_time.iat[0,0] 
+        print("pd_sim before zero-basing", pd_sim)
+        pd_sim['time'] = pd_sim['time'] - starting_sim_time  # zero base the time
+        print("pd_sim after zero-basing", pd_sim)
         pd_sim = pd_sim.drop(columns=['time'])  # we don't need these old time columns anymore
 
 
@@ -160,20 +160,20 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         temp_pd_real = pd.DataFrame(real_data, columns = ['real'])
         print("real modes", real_flight_mode_changes)
 #        print('mission dfreal.data', dfreal.data['timestamp'])
-        pd_real_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
-        starting_real_time = pd_real_time.iat[0,0] 
-        print("starting real time", starting_real_time)
-        pd_real_time['time'] = pd_real_time['time'] - starting_real_time  # zero base the time
+ 
         print("flight mode changes", real_flight_mode_changes)
         real_mission_start, real_mission_end = get_mission_mode(real_flight_mode_changes)
-        real_mission_start = real_mission_start - starting_real_time  # zero base the starting and stopping time
-        real_mission_end = real_mission_end - starting_real_time
+        pd_real_time = pd.DataFrame(dfreal.data['timestamp'],columns = ['time']) 
         temp_pd_real = pd.concat([pd_real_time,temp_pd_real], axis=1)
         print("Real mission start, finish", real_mission_start,real_mission_end)
         print("Pd real before", temp_pd_real)
         pd_real = temp_pd_real.loc[(temp_pd_real['time'] >= real_mission_start) & (temp_pd_real['time'] <= real_mission_end)] # slice this just to the mission portion
         print("Pd real after", pd_real)
+        starting_real_time = pd_real_time.iat[0,0] 
+        print("starting real time", starting_real_time)
+        pd_real_time['time'] = pd_real_time['time'] - starting_real_time  # zero base the time
         pd_real = pd_real.drop(columns=['time'])  # we don't need these old time columns anymore
+ 
 
     else:
         sim_data = dfsim.data[sim_metric]
@@ -250,8 +250,8 @@ def read_settings():
         realname = config[1]
         sim_metric = config[2]        
         real_metric = config[3]
-        simdescription = config[4]
-        realdescription = config[5]
+        simdescription = str(config[4])
+        realdescription = str(config[5])
         # real_reverse_button.active = config[5]
         # sim_reverse_button.active = config[6]
     else:   # the app is running for the first time, so start with dummy data
@@ -312,7 +312,7 @@ def plot_flight_modes(flight_mode_changes,type):
             if mission_only:
                 if mode_name == 'Mission':
                     annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
-                                        fill_alpha=0.015, line_color='black', top_units = 'screen',bottom_units = 'screen',
+                                        fill_alpha=0.04, line_color='black', top_units = 'screen',bottom_units = 'screen',
                                         fill_color=color, **added_box_annotation_args)
                     annotation.visible = True
                     mission_annotations.append(annotation)   # add the box to the list of annotations, so we can remove it if necessary later
@@ -523,6 +523,7 @@ def get_thiel_analysis_plots(simname, realname):
     ts1 = figure(plot_width=tplot_width, plot_height=tplot_height, tools=tools, x_axis_type='linear')
 
   #  ts1.add_layout(Legend(), 'right')    # if you want the legend outside of the plot
+    print("real description", realdescription)
     ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data: "+ simdescription)
     ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data: " + realdescription)
     ts1.legend.background_fill_alpha = 0.7   # make the background of the legend more transparent
@@ -581,13 +582,13 @@ if GET_arguments is not None and 'log' in GET_arguments:
             print("This is a sim file. New log ID=", log_id)
             ulog_file_name = get_log_filename(log_id)
             simname = os.path.join(get_log_filepath(), ulog_file_name)
-            simdescription = file_details[1]
+            simdescription = str(file_details[1])
         elif (templog_id.find("real") != -1):
             log_id = templog_id.replace('real','')
             print("This is a real file. New log ID=", log_id)
             ulog_file_name = get_log_filename(log_id)
             realname = os.path.join(get_log_filepath(), ulog_file_name)
-            realdescription = file_details[1]
+            realdescription = str(file_details[1])
         else:
             if not validate_log_id(templog_id):
                 raise ValueError('Invalid log id: {}'.format(log_id))
