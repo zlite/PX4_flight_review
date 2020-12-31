@@ -133,7 +133,7 @@ def load_data(filename):
 
 # @lru_cache()
 def get_data(simname,realname, sim_metric, real_metric, read_file):
-    global new_real, new_sim, dfsim, dfreal, simfile, sim_flight_mode_changes, real_flight_mode_changes
+    global dfsim, dfreal, sim_flight_mode_changes, real_flight_mode_changes
     print("Now in get_data")
 
     if read_file:
@@ -141,15 +141,22 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         dfreal, real_flight_mode_changes = load_data(realname)
         read_file = False
 
+    sim_data = dfsim.data[sim_metric].copy()  # we copy the data so we can change it wihout changing the original
+    sim_time = dfsim.data['timestamp'].copy()
+    real_data = dfreal.data[real_metric].copy()
+    real_time = dfreal.data['timestamp'].copy()
 
     if mission_only:                # only show data for when the drone is in auto modes
-        sim_data = dfsim.data[sim_metric]
         temp_pd_sim = pd.DataFrame(sim_data, columns = ['sim'])  # create one dataframe that's just the flight data for the selected metric
         sim_mission_start, sim_mission_end = get_mission_mode(sim_flight_mode_changes)
-        pd_sim_time = pd.DataFrame(dfsim.data['timestamp'],columns = ['time'])  
+        print("sim time", sim_time)
+        pd_sim_time = pd.DataFrame(sim_time,columns = ['time'])
+        print("sim mission start, end", sim_mission_start, sim_mission_end)  
         temp_pd_sim = pd.concat([pd_sim_time,temp_pd_sim], axis=1)
+        print("temp_pd_sim", temp_pd_sim)
         pd_sim2 = temp_pd_sim.loc[(temp_pd_sim['time'] >= sim_mission_start) & (temp_pd_sim['time'] <= sim_mission_end)]  #slice this just to the mission portion
         pd_sim = pd_sim2.copy()
+        print("pd_sim after slice", pd_sim)
         starting_sim_time = pd_sim.iat[0,0] 
         pd_sim['time'] -= starting_sim_time  # zero base the time
         pd_sim_time['time'] = pd_sim['time']
@@ -157,14 +164,10 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         pd_sim = pd_sim.drop(columns=['time'])  # we don't need these old time columns anymore
 
 
-        real_data = dfreal.data[real_metric]
+
         temp_pd_real = pd.DataFrame(real_data, columns = ['real'])
-        print("real modes", real_flight_mode_changes)
-        print('mission dfreal.data', dfreal.data['timestamp'])
- 
-        print("flight mode changes", real_flight_mode_changes)
         real_mission_start, real_mission_end = get_mission_mode(real_flight_mode_changes)
-        pd_real_time = pd.DataFrame(dfreal.data['timestamp'],columns = ['time']) 
+        pd_real_time = pd.DataFrame(real_time, columns = ['time']) 
         temp_pd_real = pd.concat([pd_real_time,temp_pd_real], axis=1)
 #       print("Real mission start, finish", real_mission_start,real_mission_end)
         print("Pd real before slice", temp_pd_real)
@@ -181,15 +184,13 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
  
 
     else:
-        sim_data = dfsim.data[sim_metric]
         pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
-        pd_sim_time = pd.DataFrame(dfsim.data['timestamp'],columns = ['time'])
+        pd_sim_time = pd.DataFrame(sim_time,columns = ['time'])
         starting_sim_time = pd_sim_time.iat[0,0] 
         pd_sim_time['time'] -= starting_sim_time  # zero base the time
 
-        real_data = dfreal.data[real_metric]
         pd_real = pd.DataFrame(real_data, columns = ['real'])
-        pd_real_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
+        pd_real_time = pd.DataFrame(real_time, columns = ['time'])
         starting_real_time = pd_real_time.iat[0,0] 
         pd_real_time['time'] -= starting_real_time  # zero base the time
 
@@ -350,28 +351,30 @@ def plot_flight_modes(flight_mode_changes,type):
                 labels_color.append(color)
         
 
-    if not mission_only:
         # plot flight mode names as labels
         # they're only visible when the mouse is over the plot
-        if len(labels_text) > 0:
-            source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
-                                                y=labels_y_pos, textcolor=labels_color))
-            if type == 'sim':
-                label_color = 'orange'
-            else:
-                label_color = 'blue'
-            label = LabelSet(x='x', y='y', text='text',
-                            y_units='screen', level='underlay',
-                            source=source, render_mode='canvas',
-                            text_font_size='10pt',
-                            text_color= label_color, text_alpha=0.85,
-                            background_fill_color='white',
-                            background_fill_alpha=0.8, angle=90/180*np.pi,
-                            text_align='right', text_baseline='top')
-            labels.append(label)   # add the label to the list of labels, so we can remove it if necessary later
-            label_counter = label_counter + 1  # increment the list of labels
-            label.visible = True # initially hidden
-            ts1.add_layout(label)
+    if len(labels_text) > 0:
+        source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
+                                            y=labels_y_pos, textcolor=labels_color))
+        if type == 'sim':
+            label_color = 'orange'
+        else:
+            label_color = 'blue'
+        label = LabelSet(x='x', y='y', text='text',
+                        y_units='screen', level='underlay',
+                        source=source, render_mode='canvas',
+                        text_font_size='10pt',
+                        text_color= label_color, text_alpha=0.85,
+                        background_fill_color='white',
+                        background_fill_alpha=0.8, angle=90/180*np.pi,
+                        text_align='right', text_baseline='top')
+        labels.append(label)   # add the label to the list of labels, so we can remove it if necessary later
+        label_counter = label_counter + 1  # increment the list of labels
+        if (mission_only) and (mode_name != 'Mission'):  # only show mission mode label if mission_only
+            label.visible = False 
+        else:
+            label.visible = True # otherwise show all the labels
+        ts1.add_layout(label)
             
             # # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
             # code = """
