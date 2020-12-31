@@ -152,6 +152,8 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         pd_sim = pd_sim2.copy()
         starting_sim_time = pd_sim.iat[0,0] 
         pd_sim['time'] -= starting_sim_time  # zero base the time
+        pd_sim_time['time'] = pd_sim['time']
+        print("pd_sim after zero basing", pd_sim)
         pd_sim = pd_sim.drop(columns=['time'])  # we don't need these old time columns anymore
 
 
@@ -165,15 +167,17 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         pd_real_time = pd.DataFrame(dfreal.data['timestamp'],columns = ['time']) 
         temp_pd_real = pd.concat([pd_real_time,temp_pd_real], axis=1)
 #       print("Real mission start, finish", real_mission_start,real_mission_end)
-        print("Pd real before", temp_pd_real)
+        print("Pd real before slice", temp_pd_real)
         pd_real2 = temp_pd_real.loc[(temp_pd_real['time'] >= real_mission_start) & (temp_pd_real['time'] <= real_mission_end)] # slice this just to the mission portion
         pd_real = pd_real2.copy()
-        print("Pd real after", pd_real)
+        print("Pd real after slice", pd_real)
         starting_real_time = pd_real.iat[0,0]
         print("starting real time", starting_real_time)
         pd_real['time'] -= starting_real_time  # zero base the time
+        pd_real_time['time'] = pd_real['time']
         print("pd real after zero-basing", pd_real)
         pd_real = pd_real.drop(columns=['time'])  # we don't need these old time columns anymore
+    
  
 
     else:
@@ -181,23 +185,32 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
         pd_sim_time = pd.DataFrame(dfsim.data['timestamp'],columns = ['time'])
         starting_sim_time = pd_sim_time.iat[0,0] 
-        pd_sim_time['time'] = pd_sim_time['time'] - starting_sim_time  # zero base the time
+        pd_sim_time['time'] -= starting_sim_time  # zero base the time
 
         real_data = dfreal.data[real_metric]
         pd_real = pd.DataFrame(real_data, columns = ['real'])
         pd_real_time = pd.DataFrame(dfreal.data['timestamp'], columns = ['time'])
         starting_real_time = pd_real_time.iat[0,0] 
-        pd_real_time['time'] = pd_real_time['time'] - starting_real_time  # zero base the time
+        pd_real_time['time'] -= starting_real_time  # zero base the time
 
 
- 
-    if len(pd_sim_time) > len(pd_real_time):  # base the y axis on the longest long
+    pd_real_time.dropna(subset=['time'], inplace=True)  # remove empty rows
+    pd_real.reset_index(drop=True, inplace=True)   # reset all the indicies to zero
+    pd_real_time.reset_index(drop=True, inplace=True)
+    pd_sim_time.dropna(subset=['time'], inplace=True) # do the same for the sims
+    pd_sim.reset_index(drop=True, inplace=True)
+    pd_sim_time.reset_index(drop=True, inplace=True)
+
+
+    if len(pd_sim_time) > len(pd_real_time):  # base the y axis on the longest time
         pd_time = pd_sim_time
     else:
         pd_time = pd_real_time
+
+    print("pd_time", pd_time)
     new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
     print("new_data", new_data)
-    new_data = new_data.dropna()   # remove missing values
+    new_data = new_data.dropna()   # remove missing values, if any
 
     save_settings(config)
     return new_data
