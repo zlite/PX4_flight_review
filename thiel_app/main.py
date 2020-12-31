@@ -303,7 +303,7 @@ def plot_flight_modes(flight_mode_changes,type):
     if mission_only:
         for i in range(annotation_counter):
             annotations[i].visible = False  # turn off the previous annotations
-        for i in range(label_counter):
+        for i in range(label_counter-1):
             labels[i].visible = False
     labels_y_pos = []
     labels_x_pos = []
@@ -353,36 +353,36 @@ def plot_flight_modes(flight_mode_changes,type):
 
         # plot flight mode names as labels
         # they're only visible when the mouse is over the plot
-    if len(labels_text) > 0:
-        source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
-                                            y=labels_y_pos, textcolor=labels_color))
-        if type == 'sim':
-            label_color = 'orange'
-        else:
-            label_color = 'blue'
-        label = LabelSet(x='x', y='y', text='text',
-                        y_units='screen', level='underlay',
-                        source=source, render_mode='canvas',
-                        text_font_size='10pt',
-                        text_color= label_color, text_alpha=0.85,
-                        background_fill_color='white',
-                        background_fill_alpha=0.8, angle=90/180*np.pi,
-                        text_align='right', text_baseline='top')
-        labels.append(label)   # add the label to the list of labels, so we can remove it if necessary later
-        label_counter = label_counter + 1  # increment the list of labels
-        if (mission_only) and (mode_name != 'Mission'):  # only show mission mode label if mission_only
-            label.visible = False 
-        else:
-            label.visible = True # otherwise show all the labels
-        ts1.add_layout(label)
-            
-            # # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
-            # code = """
-            # label.visible = cb_obj.event_name == "mouseenter";
-            # """
-            # callback = CustomJS(args=dict(labels=label), code=code)
-            # ts1.js_on_event(events.MouseEnter, callback)
-            # ts1.js_on_event(events.MouseLeave, callback)
+            if len(labels_text) > 0:
+                source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
+                                                    y=labels_y_pos, textcolor=labels_color))
+                if type == 'sim':
+                    label_color = 'orange'
+                else:
+                    label_color = 'blue'
+                label = LabelSet(x='x', y='y', text='text',
+                                y_units='screen', level='underlay',
+                                source=source, render_mode='canvas',
+                                text_font_size='10pt',
+                                text_color= label_color, text_alpha=0.85,
+                                background_fill_color='white',
+                                background_fill_alpha=0.8, angle=90/180*np.pi,
+                                text_align='right', text_baseline='top')
+                labels.append(label)   # add the label to the list of labels, so we can remove it if necessary later
+                label_counter = label_counter + 1  # increment the list of labels
+                if (mission_only) and (mode_name != 'Mission'):  # only show mission mode label if mission_only
+                    label.visible = False 
+                else:
+                    label.visible = True # otherwise show all the labels
+                ts1.add_layout(label)
+                    
+                    # # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
+                    # code = """
+                    # label.visible = cb_obj.event_name == "mouseenter";
+                    # """
+                    # callback = CustomJS(args=dict(labels=label), code=code)
+                    # ts1.js_on_event(events.MouseEnter, callback)
+                    # ts1.js_on_event(events.MouseLeave, callback)
 
 
 
