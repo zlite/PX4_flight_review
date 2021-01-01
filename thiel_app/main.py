@@ -81,6 +81,8 @@ annotations = []
 mission_annotations = []
 labels = []
 label_counter = 0
+sim_mission_index = 0
+real_mission_index = 0
 annotation_counter = 0
 mission_annotation_counter = 0
 config = [default_simname, default_realname, sim_metric, real_metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
@@ -149,18 +151,13 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
     if mission_only:                # only show data for when the drone is in auto modes
         temp_pd_sim = pd.DataFrame(sim_data, columns = ['sim'])  # create one dataframe that's just the flight data for the selected metric
         sim_mission_start, sim_mission_end = get_mission_mode(sim_flight_mode_changes)
-        print("sim time", sim_time)
         pd_sim_time = pd.DataFrame(sim_time,columns = ['time'])
-        print("sim mission start, end", sim_mission_start, sim_mission_end)  
         temp_pd_sim = pd.concat([pd_sim_time,temp_pd_sim], axis=1)
-        print("temp_pd_sim", temp_pd_sim)
         pd_sim2 = temp_pd_sim.loc[(temp_pd_sim['time'] >= sim_mission_start) & (temp_pd_sim['time'] <= sim_mission_end)]  #slice this just to the mission portion
         pd_sim = pd_sim2.copy()
-        print("pd_sim after slice", pd_sim)
         starting_sim_time = pd_sim.iat[0,0] 
         pd_sim['time'] -= starting_sim_time  # zero base the time
         pd_sim_time['time'] = pd_sim['time']
-        print("pd_sim after zero basing", pd_sim)
         pd_sim = pd_sim.drop(columns=['time'])  # we don't need these old time columns anymore
 
 
@@ -170,15 +167,11 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         pd_real_time = pd.DataFrame(real_time, columns = ['time']) 
         temp_pd_real = pd.concat([pd_real_time,temp_pd_real], axis=1)
 #       print("Real mission start, finish", real_mission_start,real_mission_end)
-        print("Pd real before slice", temp_pd_real)
         pd_real2 = temp_pd_real.loc[(temp_pd_real['time'] >= real_mission_start) & (temp_pd_real['time'] <= real_mission_end)] # slice this just to the mission portion
         pd_real = pd_real2.copy()
-        print("Pd real after slice", pd_real)
         starting_real_time = pd_real.iat[0,0]
-        print("starting real time", starting_real_time)
         pd_real['time'] -= starting_real_time  # zero base the time
         pd_real_time['time'] = pd_real['time']
-        print("pd real after zero-basing", pd_real)
         pd_real = pd_real.drop(columns=['time'])  # we don't need these old time columns anymore
     
  
@@ -208,9 +201,7 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
     else:
         pd_time = pd_real_time
 
-    print("pd_time", pd_time)
     new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
-    print("new_data", new_data)
     new_data = new_data.dropna()   # remove missing values, if any
 
     save_settings(config)
@@ -298,13 +289,20 @@ def get_mission_mode(flight_mode_changes):
 
 
 def plot_flight_modes(flight_mode_changes,type):
-    global annotations, mission_annotations, labels, annotation_counter, mission_annotation_counter, labels, label_counter, annotation, ts1
+    global annotations, mission_annotations, annotation_counter, mission_annotation_counter, labels, label_counter, ts1, sim_mission_index, real_mission_index, last_good
 
     if mission_only:
         for i in range(annotation_counter):
             annotations[i].visible = False  # turn off the previous annotations
-        for i in range(label_counter-1):
-            labels[i].visible = False
+        for j in range(label_counter): #turn off all previous labels except for mission ones
+            if ((type == 'sim') and (j == sim_mission_index)) or ((type == 'real') and (j == real_mission_index)):
+                labels[j].visible = True
+            else:
+                labels[j].visible = False
+            # if (labels[i].text_alpha == 0.95): # that's the sign of a mission mode
+            #     labels[i].visible = True
+            # else:
+            #     labels[i].visible = False
     labels_y_pos = []
     labels_x_pos = []
     labels_text = []
@@ -327,11 +325,12 @@ def plot_flight_modes(flight_mode_changes,type):
             if mission_only:
                 if mode_name == 'Mission':
                     annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
-                                        fill_alpha=0.04, line_color='black', top_units = 'screen',bottom_units = 'screen',
+                                        fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
                                         fill_color=color, **added_box_annotation_args)
                     annotation.visible = True
                     mission_annotations.append(annotation)   # add the box to the list of annotations, so we can remove it if necessary later
                     mission_annotation_counter = mission_annotation_counter + 1  # increment the list of annotations
+                    ts1.add_layout(annotation)
             else:
                 annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
                                     fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
@@ -339,7 +338,7 @@ def plot_flight_modes(flight_mode_changes,type):
                 annotation.visible = True
                 annotations.append(annotation)   # add the box to the list of annotations, so we can remove it if necessary later
                 annotation_counter = annotation_counter + 1  # increment the list of annotations
-            ts1.add_layout(annotation)
+                ts1.add_layout(annotation)
 
 
 
@@ -358,8 +357,15 @@ def plot_flight_modes(flight_mode_changes,type):
                                                     y=labels_y_pos, textcolor=labels_color))
                 if type == 'sim':
                     label_color = 'orange'
+                    if mode_name == 'Mission':
+                        print("this should only happen once per sim and once per real. This one is SIM")
+                        sim_mission_index = label_counter  
                 else:
                     label_color = 'blue'
+                    if mode_name == 'Mission':
+                        print("this should only happen once per sim and once per real. This one is REAL")
+                        real_mission_index = label_counter   
+
                 label = LabelSet(x='x', y='y', text='text',
                                 y_units='screen', level='underlay',
                                 source=source, render_mode='canvas',
@@ -368,6 +374,7 @@ def plot_flight_modes(flight_mode_changes,type):
                                 background_fill_color='white',
                                 background_fill_alpha=0.8, angle=90/180*np.pi,
                                 text_align='right', text_baseline='top')
+
                 labels.append(label)   # add the label to the list of labels, so we can remove it if necessary later
                 label_counter = label_counter + 1  # increment the list of labels
                 if (mission_only) and (mode_name != 'Mission'):  # only show mission mode label if mission_only
