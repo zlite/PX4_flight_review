@@ -80,9 +80,8 @@ labels_x_pos = []
 annotations = []
 mission_annotations = []
 labels = []
-label_counter = 0
-sim_mission_index = 0
-real_mission_index = 0
+sim_label = Label()
+real_label = Label()
 annotation_counter = 0
 mission_annotation_counter = 0
 config = [default_simname, default_realname, sim_metric, real_metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
@@ -289,20 +288,21 @@ def get_mission_mode(flight_mode_changes):
 
 
 def plot_flight_modes(flight_mode_changes,type):
-    global annotations, mission_annotations, annotation_counter, mission_annotation_counter, labels, label_counter, ts1, sim_mission_index, real_mission_index, last_good
+    global annotations, mission_annotations, annotation_counter, mission_annotation_counter, sim_label, real_label, labels, ts1
 
     if mission_only:
         for i in range(annotation_counter):
             annotations[i].visible = False  # turn off the previous annotations
-        for j in range(label_counter): #turn off all previous labels except for mission ones
-            if ((type == 'sim') and (j == sim_mission_index)) or ((type == 'real') and (j == real_mission_index)):
-                labels[j].visible = True
-            else:
-                labels[j].visible = False
-            # if (labels[i].text_alpha == 0.95): # that's the sign of a mission mode
-            #     labels[i].visible = True
-            # else:
-            #     labels[i].visible = False
+
+        for j in range(len(labels)): # Turn off the previous labels
+            labels[j].visible = False
+
+        if type == 'sim':
+            real_label.visible = True
+        else:
+            sim_label.visible = True # now just turn on the two mission mode labels
+
+
     labels_y_pos = []
     labels_x_pos = []
     labels_text = []
@@ -321,7 +321,6 @@ def plot_flight_modes(flight_mode_changes,type):
         t_end = t_end - time_offset
         if mode in flight_modes_table:
             mode_name, color = flight_modes_table[mode]
-            print("Mode name:", mode_name, "Color:", color, "start", int(t_start), "end", int(t_end))
             if mission_only:
                 if mode_name == 'Mission':
                     annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
@@ -344,11 +343,14 @@ def plot_flight_modes(flight_mode_changes,type):
 
             if flight_mode_changes[i+1][0] - t_start > 1e6: # filter fast
                                                  # switches to avoid overlap
-                labels_text.append(mode_name)
+                if type == 'sim':
+                    labels_text.append(mode_name)
+                else:
+                    labels_text.append(mode_name)
+
                 labels_x_pos.append(t_start)
                 labels_y_pos.append(labels_y_offset)
                 labels_color.append(color)
-        
 
         # plot flight mode names as labels
         # they're only visible when the mouse is over the plot
@@ -357,31 +359,35 @@ def plot_flight_modes(flight_mode_changes,type):
                                                     y=labels_y_pos, textcolor=labels_color))
                 if type == 'sim':
                     label_color = 'orange'
-                    if mode_name == 'Mission':
-                        print("this should only happen once per sim and once per real. This one is SIM")
-                        sim_mission_index = label_counter  
                 else:
                     label_color = 'blue'
-                    if mode_name == 'Mission':
-                        print("this should only happen once per sim and once per real. This one is REAL")
-                        real_mission_index = label_counter   
+                if mission_only:
+                    if mode_name == 'Mission': 
+                        label = Label(x=t_start, y=labels_y_offset, text='Mission',  # just create a single label for each mission mode
+                                            y_units='screen', level='underlay',
+                                            render_mode='canvas',
+                                            text_font_size='10pt',
+                                            text_color= label_color, text_alpha=0.85,
+                                            background_fill_color='white',
+                                            background_fill_alpha=0.8, angle=90, angle_units = 'deg', text_align='right', text_baseline='top')
 
-                label = LabelSet(x='x', y='y', text='text',
-                                y_units='screen', level='underlay',
-                                source=source, render_mode='canvas',
-                                text_font_size='10pt',
-                                text_color= label_color, text_alpha=0.85,
-                                background_fill_color='white',
-                                background_fill_alpha=0.8, angle=90/180*np.pi,
-                                text_align='right', text_baseline='top')
-
-                labels.append(label)   # add the label to the list of labels, so we can remove it if necessary later
-                label_counter = label_counter + 1  # increment the list of labels
-                if (mission_only) and (mode_name != 'Mission'):  # only show mission mode label if mission_only
-                    label.visible = False 
+                        if type == 'sim':
+                            sim_label = label
+                        else:
+                            real_label = label
+                        ts1.add_layout(label)
                 else:
-                    label.visible = True # otherwise show all the labels
-                ts1.add_layout(label)
+                    label = LabelSet(x='x', y='y', text='text',   # create a whole label set
+                                    y_units='screen', level='underlay',
+                                    source=source, render_mode='canvas',
+                                    text_font_size='10pt',
+                                    text_color= label_color, text_alpha=0.85,
+                                    background_fill_color='white',
+                                    background_fill_alpha=0.8, angle=90/180*np.pi,
+                                    text_align='right', text_baseline='top')
+                    labels.append(label)
+                    ts1.add_layout(label)
+
                     
                     # # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
                     # code = """
