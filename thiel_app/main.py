@@ -298,9 +298,9 @@ def plot_flight_modes(flight_mode_changes,type):
             labels[j].visible = False
 
         if type == 'sim':
-            real_label.visible = True
+            real_label.visible = True # now just turn on the two mission mode labels
         else:
-            sim_label.visible = True # now just turn on the two mission mode labels
+            sim_label.visible = True 
 
 
     labels_y_pos = []
@@ -387,15 +387,6 @@ def plot_flight_modes(flight_mode_changes,type):
                                     text_align='right', text_baseline='top')
                     labels.append(label)
                     ts1.add_layout(label)
-
-                    
-                    # # callback doc: https://bokeh.pydata.org/en/latest/docs/user_guide/interaction/callbacks.html
-                    # code = """
-                    # label.visible = cb_obj.event_name == "mouseenter";
-                    # """
-                    # callback = CustomJS(args=dict(labels=label), code=code)
-                    # ts1.js_on_event(events.MouseEnter, callback)
-                    # ts1.js_on_event(events.MouseLeave, callback)
 
 
 
