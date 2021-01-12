@@ -404,16 +404,30 @@ def update(selected=None):
  
     if reverse_sim_data:
         datalog[['sim']] = sim_polarity * original_data['sim']  # reverse data if necessary
-        simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
-        simmin = round(min(datalog[['sim']].values)[0])
         datasource.data = datalog
         reverse_sim_data = False
     if reverse_real_data:
         datalog['real'] = real_polarity * original_data['real']
-        realmax = round(max(datalog[['real']].values)[0])
-        realmin = round(min(datalog[['real']].values)[0])
+
         datasource.data = datalog
         reverse_real_data = False
+
+    simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
+    simmin = round(min(datalog[['sim']].values)[0])
+    realmax = round(max(datalog[['real']].values)[0])
+    realmin = round(min(datalog[['real']].values)[0])
+    if simmax >= realmax: 
+        rangemax = simmax
+    else: 
+        rangemax = realmax
+
+    if simmin <- realmin:
+        rangemin = simmin
+    else:
+        rangemin = realmin
+    ts1.x_range.start = rangemin - abs((rangemax-rangemin)/10)
+    ts1.x_range.end = simmax + abs((rangemax-rangemin)/10)
+
 
     plot_flight_modes(sim_flight_mode_changes, 'sim')
     plot_flight_modes(real_flight_mode_changes, 'real')
