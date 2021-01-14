@@ -391,7 +391,7 @@ def plot_flight_modes(flight_mode_changes,type):
 
 
 def update(selected=None):
-    global reverse_sim_data, reverse_real_data, datalog, original_data, datasource
+    global reverse_sim_data, reverse_real_data, datalog, original_data, datasource, ts1
  
     print("Fetching new data", simname, realname, sim_metric, real_metric, read_file)
  
@@ -412,10 +412,13 @@ def update(selected=None):
         datasource.data = datalog
         reverse_real_data = False
 
+    print(datalog)    
+
     simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
     simmin = round(min(datalog[['sim']].values)[0])
     realmax = round(max(datalog[['real']].values)[0])
     realmin = round(min(datalog[['real']].values)[0])
+
     if simmax >= realmax: 
         rangemax = simmax
     else: 
@@ -425,9 +428,17 @@ def update(selected=None):
         rangemin = simmin
     else:
         rangemin = realmin
-    ts1.x_range.start = rangemin - abs((rangemax-rangemin)/10)
-    ts1.x_range.end = simmax + abs((rangemax-rangemin)/10)
 
+
+    # since autoscaling doesn't always work, let's do it ourselves
+    ts1.y_range.start = rangemin - abs((rangemax-rangemin)/10)  # the min and max plus a little 10% buffer
+    ts1.y_range.end = rangemax + abs((rangemax-rangemin)/10)
+
+    timemin = round(min(datalog[['time']].values)[0])
+    timemax = round(max(datalog[['time']].values)[0])
+
+    ts1.x_range.start = timemin
+    ts1.x_range.end = timemax
 
     plot_flight_modes(sim_flight_mode_changes, 'sim')
     plot_flight_modes(real_flight_mode_changes, 'real')
@@ -556,7 +567,7 @@ def get_thiel_analysis_plots(simname, realname):
 
     tools = 'xpan,wheel_zoom,reset'
     ts1 = figure(plot_width=tplot_width, plot_height=tplot_height, tools=tools, x_axis_type='linear')
-
+ 
   #  ts1.add_layout(Legend(), 'right')    # if you want the legend outside of the plot
     print("real description", realdescription)
     ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data: "+ simdescription)
