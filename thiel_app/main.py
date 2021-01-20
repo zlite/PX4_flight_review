@@ -135,7 +135,6 @@ def load_data(filename):
 # @lru_cache()
 def get_data(simname,realname, sim_metric, real_metric, read_file):
     global dfsim, dfreal, sim_flight_mode_changes, real_flight_mode_changes
-    print("Now in get_data")
 
     if read_file:
         dfsim, sim_flight_mode_changes = load_data(simname)
@@ -199,9 +198,9 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         pd_time = pd_sim_time
     else:
         pd_time = pd_real_time
+    
 
     new_data = pd.concat([pd_time,pd_sim, pd_real], axis=1)
-    new_data = new_data.dropna()   # remove missing values, if any
 
     save_settings(config)
     return new_data
