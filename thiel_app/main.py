@@ -13,7 +13,7 @@ import base64
 from db_entry import *
 import pickle 
 
-
+import simstats
 
 #import thiel_analysis
 from bokeh.io import curdoc,output_file, show
@@ -22,7 +22,6 @@ from bokeh.models import Title
 from bokeh.layouts import column
 from scipy.interpolate import interp1d
 
-import plotting
 from plotted_tables import *
 from configured_plots import *
 from os.path import dirname, join
@@ -37,7 +36,6 @@ from bokeh.models.widgets import FileInput
 from bokeh.models.widgets import Paragraph
 
 import pandas as pd
-import argparse
 
 from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource, PreText, Select
@@ -415,31 +413,11 @@ def update(selected=None):
     plot_flight_modes(real_flight_mode_changes, 'real')
 
     config = update_config()
-    thiel = update_stats(datalog)
+    thiel = simstats.sim2real_stats(datalog)
     stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(thiel)
     save_settings(config)
 
-def update_stats(data):
-    real = np.array(data['real'])
-    sim = np.array(data['sim'])
-    stats = 0
-    if (len(real) != 0) and (len(sim) !=0):  # avoid divide by zero errors
-        sum1 = 0
-        sum2 = 0
-        sum3 = 0
-        for n in range(len(real)):
-            sum1 = sum1 + (real[int(n)]-sim[int(n)])**2
-            sum2 = sum2 + real[int(n)]**2
-            sum3 = sum3 + sim[int(n)]**2
-        sum1 = 1/len(real) * sum1
-        sum2 = 1/len(real) * sum2
-        sum3 = 1/len(real) * sum3
-        sum1 = math.sqrt(sum1)
-        sum2 = math.sqrt(sum2)
-        sum3 = math.sqrt(sum3)
-        stats = sum1/(sum2 + sum3)
-        stats = round(stats,3)
-    return stats
+
 
 def clear_boxes():
     global annotations, mission_annotations
@@ -459,8 +437,6 @@ def mission_mode():
         mission_only = False
         print("Show all modes")
     update()
-
-
 
 def reverse_sim():
     global sim_polarity, reverse_sim_data, config
@@ -522,7 +498,6 @@ def get_thiel_analysis_plots(simname, realname):
 
     for i in range(10):
         if keys[i][0] == 'x':
-            print ("the datalog that has the x/y data is", i)
             found_x = i
     
     datatype = Select(value='x', options=keys[found_x])
