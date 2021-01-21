@@ -390,7 +390,9 @@ def plot_flight_modes(flight_mode_changes,type):
                     labels.append(label)
                     ts1.add_layout(label)
 
-def rescale(datalog):      # since autoscaling doesn't always work, let's do it ourselves
+
+
+def rescale(datalog):      # since autoscaling doesn't always work, this is how to do it ourselves. We're not currently using this
     global ts1
     simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appropriate (auto scaling doesn't work)
     simmin = round(min(datalog[['sim']].values)[0])
@@ -411,6 +413,8 @@ def rescale(datalog):      # since autoscaling doesn't always work, let's do it 
         rangemin = realmin
 
     print("rangemax, min", rangemax, rangemin)
+
+    # fix the below; turns out that "start" and "end" may switch depending on context
 
     ts1.y_range.start = rangemin - abs((rangemax-rangemin)/10)  # the min and max plus a little 10% buffer
     ts1.y_range.end = rangemax + abs((rangemax-rangemin)/10)
