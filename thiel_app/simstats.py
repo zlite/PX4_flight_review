@@ -15,7 +15,7 @@ def sim2real_stats(data):
         sum1 = 0
         sum2 = 0
         sum3 = 0
-        for n in range(len(real)):
+        for n in range(len(real)-1):
             sum1 = sum1 + (real[int(n)]-sim[int(n)])**2
             sum2 = sum2 + real[int(n)]**2
             sum3 = sum3 + sim[int(n)]**2
