@@ -322,7 +322,10 @@ def plot_flight_modes(flight_mode_changes,type):
             mode_name, color = flight_modes_table[mode]
             if mission_only:
                 if mode_name == 'Mission':
-                    annotation = BoxAnnotation(left=int(t_start), right=int(t_end), top = labels_y_offset, bottom = labels_y_offset-100, 
+                    mtime_offset = t_start
+                    mt_start = 0   # zero base mission mode
+                    mt_end = t_end - mtime_offset
+                    annotation = BoxAnnotation(left=int(mt_start), right=int(mt_end), top = labels_y_offset, bottom = labels_y_offset-100, 
                                         fill_alpha=0.09, line_color='black', top_units = 'screen',bottom_units = 'screen',
                                         fill_color=color, **added_box_annotation_args)
                     annotation.visible = True
@@ -387,6 +390,38 @@ def plot_flight_modes(flight_mode_changes,type):
                     labels.append(label)
                     ts1.add_layout(label)
 
+def rescale(datalog):      # since autoscaling doesn't always work, let's do it ourselves
+    global ts1
+    simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appropriate (auto scaling doesn't work)
+    simmin = round(min(datalog[['sim']].values)[0])
+    realmax = round(max(datalog[['real']].values)[0])
+    realmin = round(min(datalog[['real']].values)[0])
+
+    print("simmax, min", simmax, simmin)
+    print("realmax, min", realmax, realmin)
+
+    if simmax >= realmax: 
+        rangemax = simmax
+    else: 
+        rangemax = realmax
+
+    if simmin <= realmin:
+        rangemin = simmin
+    else:
+        rangemin = realmin
+
+    print("rangemax, min", rangemax, rangemin)
+
+    ts1.y_range.start = rangemin - abs((rangemax-rangemin)/10)  # the min and max plus a little 10% buffer
+    ts1.y_range.end = rangemax + abs((rangemax-rangemin)/10)
+
+
+
+    timemin = round(min(datalog[['time']].values)[0])
+    timemax = round(max(datalog[['time']].values)[0])
+
+    ts1.x_range.start = timemin
+    ts1.x_range.end = timemax
 
 
 def update(selected=None):
@@ -398,9 +433,6 @@ def update(selected=None):
     datalog = copy.deepcopy(original_data)
     datasource.data = datalog
  
-    print("Sim offset", simx_offset)
-    print("Real offset", realx_offset)
- 
     if reverse_sim_data:
         datalog[['sim']] = sim_polarity * original_data['sim']  # reverse data if necessary
         datasource.data = datalog
@@ -409,47 +441,12 @@ def update(selected=None):
         datalog['real'] = real_polarity * original_data['real']
 
         datasource.data = datalog
-        reverse_real_data = False
+        reverse_real_data = False  
 
-    print(datalog)    
-
-    simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appopriate (auto scaling doesn't work)
-    simmin = round(min(datalog[['sim']].values)[0])
-    realmax = round(max(datalog[['real']].values)[0])
-    realmin = round(min(datalog[['real']].values)[0])
-
-    if simmax >= realmax: 
-        rangemax = simmax
-    else: 
-        rangemax = realmax
-
-    if simmin <- realmin:
-        rangemin = simmin
-    else:
-        rangemin = realmin
-
-
-    # since autoscaling doesn't always work, let's do it ourselves
-    ts1.y_range.start = rangemin - abs((rangemax-rangemin)/10)  # the min and max plus a little 10% buffer
-    ts1.y_range.end = rangemax + abs((rangemax-rangemin)/10)
-
-    timemin = round(min(datalog[['time']].values)[0])
-    timemax = round(max(datalog[['time']].values)[0])
-
-    ts1.x_range.start = timemin
-    ts1.x_range.end = timemax
+  #  rescale(datalog)
 
     plot_flight_modes(sim_flight_mode_changes, 'sim')
     plot_flight_modes(real_flight_mode_changes, 'real')
-
-#     if mission_only:  # don't plot modes if you're only showing mission mode
-#         print("Now in mission-only mode")
-# #        curdoc().clear()
-#         chart.children.remove(ts1)
-
-
-
-    
 
     config = update_config()
     thiel = update_stats(datalog)
