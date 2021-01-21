@@ -15,13 +15,14 @@ def sim2real_stats(data):
         sum1 = 0
         sum2 = 0
         sum3 = 0
-        for n in range(len(real)-1):
+        length = min(len(real), len(sim))  # only compare over the overlapping range of the two datasets, which is the smallest of the two
+        for n in range(length):
             sum1 = sum1 + (real[int(n)]-sim[int(n)])**2
             sum2 = sum2 + real[int(n)]**2
             sum3 = sum3 + sim[int(n)]**2
-        sum1 = 1/len(real) * sum1
-        sum2 = 1/len(real) * sum2
-        sum3 = 1/len(real) * sum3
+        sum1 = 1/length * sum1
+        sum2 = 1/length * sum2
+        sum3 = 1/length * sum3
         sum1 = math.sqrt(sum1)
         sum2 = math.sqrt(sum2)
         sum3 = math.sqrt(sum3)
