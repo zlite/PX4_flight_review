@@ -390,44 +390,6 @@ def plot_flight_modes(flight_mode_changes,type):
                     labels.append(label)
                     ts1.add_layout(label)
 
-
-
-def rescale(datalog):      # since autoscaling doesn't always work, this is how to do it ourselves. We're not currently using this
-    global ts1
-    simmax = round(max(datalog[['sim']].values)[0])  # reset the axis scales as appropriate (auto scaling doesn't work)
-    simmin = round(min(datalog[['sim']].values)[0])
-    realmax = round(max(datalog[['real']].values)[0])
-    realmin = round(min(datalog[['real']].values)[0])
-
-    print("simmax, min", simmax, simmin)
-    print("realmax, min", realmax, realmin)
-
-    if simmax >= realmax: 
-        rangemax = simmax
-    else: 
-        rangemax = realmax
-
-    if simmin <= realmin:
-        rangemin = simmin
-    else:
-        rangemin = realmin
-
-    print("rangemax, min", rangemax, rangemin)
-
-    # fix the below; turns out that "start" and "end" may switch depending on context
-
-    ts1.y_range.start = rangemin - abs((rangemax-rangemin)/10)  # the min and max plus a little 10% buffer
-    ts1.y_range.end = rangemax + abs((rangemax-rangemin)/10)
-
-
-
-    timemin = round(min(datalog[['time']].values)[0])
-    timemax = round(max(datalog[['time']].values)[0])
-
-    ts1.x_range.start = timemin
-    ts1.x_range.end = timemax
-
-
 def update(selected=None):
     global reverse_sim_data, reverse_real_data, datalog, original_data, datasource, ts1
  
@@ -479,16 +441,22 @@ def update_stats(data):
         stats = round(stats,3)
     return stats
 
+def clear_boxes():
+    global annotations, mission_annotations
+    for i in range(mission_annotation_counter):
+        mission_annotations[i].visible = False  # turn off the previous mission annotations
+    for j in range(annotation_counter):
+        annotations[j].visible = False  # turn off the previous other mode annotations
+
+
 def mission_mode():
-    global mission_only, mission_annotations
+    global mission_only
+    clear_boxes() #turn off old mode displays
     if (mission_mode_button.active == 1):   
         mission_only = True
         print("Show only missions")
-
     else: 
         mission_only = False
-        for i in range(mission_annotation_counter):
-            mission_annotations[i].visible = False  # turn off the previous annotations
         print("Show all modes")
     update()
 
@@ -501,6 +469,7 @@ def reverse_sim():
         config[6] = sim_reverse_button.active
     else: sim_polarity = 1
     reverse_sim_data = True
+    clear_boxes() #turn off old mode displays
     update()
 
 def reverse_real():
@@ -510,6 +479,7 @@ def reverse_real():
         config[5] = real_reverse_button.active
     else: real_polarity = 1
     reverse_real_data = True
+    clear_boxes() #turn off old mode displays
     update()
 
 def swap_sim():
@@ -519,6 +489,7 @@ def swap_sim():
         sim_metric = 'y'
     else: 
         sim_metric = 'x'
+    clear_boxes() #turn off old mode displays
     update()
 
 def swap_real():
@@ -528,6 +499,7 @@ def swap_real():
         real_metric = 'y'
     else:
         real_metric = 'x'
+    clear_boxes() #turn off old mode displays
     update()
 
 def sim_change(attrname, old, new):
