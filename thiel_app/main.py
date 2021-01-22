@@ -13,7 +13,7 @@ import base64
 from db_entry import *
 import pickle 
 
-import simstats
+import simstats  # this the module that you can modify to add your own stats
 
 #import thiel_analysis
 from bokeh.io import curdoc,output_file, show
@@ -48,8 +48,6 @@ from bokeh.application.handlers import DirectoryHandler
 #pylint: disable=cell-var-from-loop, undefined-loop-variable,
 
 
-
-
 default_simname = 'sim.ulg'  # these are the defaults if you don't load your own data
 default_realname = 'real.ulg'
 simdescription = '(Dummy data. Please select your own sim log above)'
@@ -59,6 +57,7 @@ real_polarity = 1
 simx_offset = 0
 realx_offset = 0
 read_file = True
+get_new_data = True
 reverse_sim_data = False
 reverse_real_data = False
 refresh = False
@@ -173,8 +172,6 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
         pd_real_time['time'] = pd_real['time']
         pd_real = pd_real.drop(columns=['time'])  # we don't need these old time columns anymore
     
- 
-
     else:
         pd_sim = pd.DataFrame(sim_data, columns = ['sim'])
         pd_sim_time = pd.DataFrame(sim_time,columns = ['time'])
@@ -205,8 +202,6 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
 
     save_settings(config)
     return new_data
-
-
 
 def update_config():
     config[0] = simname
@@ -385,13 +380,14 @@ def plot_flight_modes(flight_mode_changes,type):
                     ts1.add_layout(label)
 
 def update(selected=None):
-    global reverse_sim_data, reverse_real_data, datalog, original_data, datasource, ts1
- 
-    print("Fetching new data", simname, realname, sim_metric, real_metric, read_file)
- 
-    original_data = get_data(simname, realname, sim_metric, real_metric, read_file)
-    datalog = copy.deepcopy(original_data)
-    datasource.data = datalog
+    global reverse_sim_data, reverse_real_data, datalog, original_data, datasource, ts1, get_new_data
+    clear_boxes() #turn off old mode displays
+    if get_new_data: 
+        print("Fetching new data", simname, realname, sim_metric, real_metric, read_file)
+        original_data = get_data(simname, realname, sim_metric, real_metric, read_file)
+        datalog = copy.deepcopy(original_data)
+        datasource.data = datalog
+        get_new_data = False
  
     if reverse_sim_data:
         datalog[['sim']] = sim_polarity * original_data['sim']  # reverse data if necessary
@@ -399,11 +395,8 @@ def update(selected=None):
         reverse_sim_data = False
     if reverse_real_data:
         datalog['real'] = real_polarity * original_data['real']
-
         datasource.data = datalog
         reverse_real_data = False  
-
-  #  rescale(datalog)
 
     plot_flight_modes(sim_flight_mode_changes, 'sim')
     plot_flight_modes(real_flight_mode_changes, 'real')
@@ -414,16 +407,26 @@ def update(selected=None):
     save_settings(config)
 
 def normalize():
-    sim_mean = datalog['sim'].mean()  # get the average
-    real_mean = datalog['real'].mean()
-    print("sim mean", sim_mean)
-    print("real mean", real_mean)
-    # data.realy = data.realy + mean_diff # normalize the two
-    # data['sim'] = dfsim.x
-    # data['simt'] = dfsim.timestamp
-    # data['real'] = dfreal.x
-    # data['realt'] = dfreal.timestamp
-    print("doing fake normalization")
+    global datalog, realnorm, simnorm, get_new_data
+    if (normalize_mode_button.active == 1):
+        realnorm = 0
+        simnorm = 0 
+        sim_mean = datalog['sim'].mean()  # get the average
+        real_mean = datalog['real'].mean()
+        print("sim mean", sim_mean)
+        print("real mean", real_mean)
+        if sim_mean >= real_mean:
+            realnorm = sim_mean - real_mean
+            datalog['real'] = datalog['real'] + realnorm  # increase the lower one by the average of their difference
+        else:
+            simnorm = real_mean - sim_mean
+            datalog['sim'] = datalog['sim'] + simnorm
+    else:
+        datalog['real'] = datalog['real'] - realnorm  # revert to the way they were
+        datalog['sim'] = datalog['sim'] - simnorm
+    get_new_data = False
+    update()
+
 
 def clear_boxes():
     global annotations, mission_annotations
@@ -434,14 +437,14 @@ def clear_boxes():
 
 
 def mission_mode():
-    global mission_only
-    clear_boxes() #turn off old mode displays
+    global mission_only, get_new_data
     if (mission_mode_button.active == 1):   
         mission_only = True
         print("Show only missions")
     else: 
         mission_only = False
         print("Show all modes")
+    get_new_data = True
     update()
 
 def reverse_sim():
@@ -451,7 +454,6 @@ def reverse_sim():
         config[6] = sim_reverse_button.active
     else: sim_polarity = 1
     reverse_sim_data = True
-    clear_boxes() #turn off old mode displays
     update()
 
 def reverse_real():
@@ -461,38 +463,37 @@ def reverse_real():
         config[5] = real_reverse_button.active
     else: real_polarity = 1
     reverse_real_data = True
-    clear_boxes() #turn off old mode displays
     update()
 
 def swap_sim():
-    global sim_metric
+    global sim_metric, get_new_data
     print("Swapping sim. Metric is", sim_metric)
     if sim_metric == 'x': 
         sim_metric = 'y'
     else: 
         sim_metric = 'x'
-    clear_boxes() #turn off old mode displays
+    get_new_data = True
     update()
 
 def swap_real():
-    global real_metric
+    global real_metric, get_new_data
     print("Swapping real. Metric is", real_metric)
     if real_metric == 'x': 
         real_metric = 'y'
     else:
         real_metric = 'x'
-    clear_boxes() #turn off old mode displays
+    get_new_data = True
     update()
 
 def sim_change(attrname, old, new):
-    global sim_metric, real_metric, read_file, config
+    global sim_metric, real_metric, read_file, config, get_new_data
     print("Sim change:", new)
     sim_metric = new
     real_metric = new
     config[2] = sim_metric # save state
     config[3] = real_metric # save state
+    get_new_data = True
     read_file = True
-    clear_boxes() #turn off old mode displays
     update()   
 
 def get_thiel_analysis_plots(simname, realname):
