@@ -344,7 +344,7 @@ def plot_flight_modes(flight_mode_changes,type):
                 labels_color.append(color)
 
         # plot flight mode names as labels
-        # they're only visible when the mouse is over the plot
+
             if len(labels_text) > 0:
                 source = ColumnDataSource(data=dict(x=labels_x_pos, text=labels_text,
                                                     y=labels_y_pos, textcolor=labels_color))
@@ -386,18 +386,16 @@ def update(selected=None):
         print("Fetching new data", simname, realname, sim_metric, real_metric, read_file)
         original_data = get_data(simname, realname, sim_metric, real_metric, read_file)
         datalog = copy.deepcopy(original_data)
-        datasource.data = datalog
         get_new_data = False
  
     if reverse_sim_data:
         datalog[['sim']] = sim_polarity * original_data['sim']  # reverse data if necessary
-        datasource.data = datalog
         reverse_sim_data = False
     if reverse_real_data:
         datalog['real'] = real_polarity * original_data['real']
-        datasource.data = datalog
         reverse_real_data = False  
 
+    datasource.data = datalog
     plot_flight_modes(sim_flight_mode_changes, 'sim')
     plot_flight_modes(real_flight_mode_changes, 'real')
 
@@ -407,8 +405,9 @@ def update(selected=None):
     save_settings(config)
 
 def normalize():
-    global datalog, realnorm, simnorm, get_new_data
+    global datalog, realnorm, simnorm, get_new_data, norm
     if (normalize_mode_button.active == 1):
+        norm = True
         realnorm = 0
         simnorm = 0 
         sim_mean = datalog['sim'].mean()  # get the average
@@ -422,6 +421,7 @@ def normalize():
             simnorm = real_mean - sim_mean
             datalog['sim'] = datalog['sim'] + simnorm
     else:
+        norm = False
         datalog['real'] = datalog['real'] - realnorm  # revert to the way they were
         datalog['sim'] = datalog['sim'] - simnorm
     get_new_data = False
@@ -445,6 +445,7 @@ def mission_mode():
         mission_only = False
         print("Show all modes")
     get_new_data = True
+    normalize_mode_button.active = 0
     update()
 
 def reverse_sim():
@@ -454,6 +455,7 @@ def reverse_sim():
         config[6] = sim_reverse_button.active
     else: sim_polarity = 1
     reverse_sim_data = True
+    normalize_mode_button.active = 0
     update()
 
 def reverse_real():
@@ -463,6 +465,7 @@ def reverse_real():
         config[5] = real_reverse_button.active
     else: real_polarity = 1
     reverse_real_data = True
+    normalize_mode_button.active = 0
     update()
 
 def swap_sim():
@@ -473,6 +476,7 @@ def swap_sim():
     else: 
         sim_metric = 'x'
     get_new_data = True
+    normalize_mode_button.active = 0
     update()
 
 def swap_real():
@@ -483,6 +487,7 @@ def swap_real():
     else:
         real_metric = 'x'
     get_new_data = True
+    normalize_mode_button.active = 0
     update()
 
 def sim_change(attrname, old, new):
@@ -494,6 +499,7 @@ def sim_change(attrname, old, new):
     config[3] = real_metric # save state
     get_new_data = True
     read_file = True
+    normalize_mode_button.active = 0
     update()   
 
 def get_thiel_analysis_plots(simname, realname):
