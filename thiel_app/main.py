@@ -88,6 +88,9 @@ config = [default_simname, default_realname, sim_metric, real_metric, simdescrip
 mission_mode_button = RadioButtonGroup(
         labels=["Show all flight modes", "Show only Mission mode"], active=0)
 mission_mode_button.on_change('active', lambda attr, old, new: mission_mode())
+normalize_mode_button = RadioButtonGroup(
+        labels=["Raw data", "Normalized data"], active=0)
+normalize_mode_button.on_change('active', lambda attr, old, new: normalize())
 sim_reverse_button = RadioButtonGroup(
         labels=["Sim Default Orientation", "Reversed Orientation"], active=0)
 sim_reverse_button.on_change('active', lambda attr, old, new: reverse_sim())
@@ -203,14 +206,7 @@ def get_data(simname,realname, sim_metric, real_metric, read_file):
     save_settings(config)
     return new_data
 
-    # sim_mean = dfsim.y.mean()  # get the average
-    # real_mean = dfreal.y.mean()
-    # mean_diff = sim_mean - real_mean 
-    # data.realy = data.realy + mean_diff # normalize the two
-    # data['sim'] = dfsim.x
-    # data['simt'] = dfsim.timestamp
-    # data['real'] = dfreal.x
-    # data['realt'] = dfreal.timestamp
+
 
 def update_config():
     config[0] = simname
@@ -417,7 +413,17 @@ def update(selected=None):
     stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(thiel)
     save_settings(config)
 
-
+def normalize():
+    sim_mean = datalog['sim'].mean()  # get the average
+    real_mean = datalog['real'].mean()
+    print("sim mean", sim_mean)
+    print("real mean", real_mean)
+    # data.realy = data.realy + mean_diff # normalize the two
+    # data['sim'] = dfsim.x
+    # data['simt'] = dfsim.timestamp
+    # data['real'] = dfreal.x
+    # data['realt'] = dfreal.timestamp
+    print("doing fake normalization")
 
 def clear_boxes():
     global annotations, mission_annotations
@@ -486,6 +492,7 @@ def sim_change(attrname, old, new):
     config[2] = sim_metric # save state
     config[3] = real_metric # save state
     read_file = True
+    clear_boxes() #turn off old mode displays
     update()   
 
 def get_thiel_analysis_plots(simname, realname):
@@ -536,6 +543,7 @@ def get_thiel_analysis_plots(simname, realname):
     # set up layout
     widgets = column(datatype,stats)
     mission_button = column(mission_mode_button)
+    normalize_button = column(normalize_mode_button)
     sim_button = column(sim_reverse_button)
     real_button = column(real_reverse_button)
     sswap_button = column(sim_swap_button)
@@ -544,7 +552,7 @@ def get_thiel_analysis_plots(simname, realname):
     space = column(spacer)
     main_row = row(widgets)
     chart = column(ts1)
-    buttons = column(mission_button, space, sim_button, sswap_button, rule, real_button, rswap_button)
+    buttons = column(mission_button, normalize_button, space, sim_button, sswap_button, rule, real_button, rswap_button)
     layout = column(main_row, chart, buttons)
 
     # initialize
