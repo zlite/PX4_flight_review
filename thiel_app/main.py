@@ -412,8 +412,6 @@ def normalize():
         simnorm = 0 
         sim_mean = datalog['sim'].mean()  # get the average
         real_mean = datalog['real'].mean()
-        print("sim mean", sim_mean)
-        print("real mean", real_mean)
         if sim_mean >= real_mean:
             realnorm = sim_mean - real_mean
             datalog['real'] = datalog['real'] + realnorm  # increase the lower one by the average of their difference
