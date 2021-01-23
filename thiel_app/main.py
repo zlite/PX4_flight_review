@@ -82,13 +82,13 @@ mission_annotation_counter = 0
 config = [default_simname, default_realname, sim_metric, real_metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
 
 
-def kill():
-    # this is just for debugging. It creates an error so we can watch crash handling
-    sys.exit()
- #   raise RuntimeError("Fake error")
+# def kill():
+#     # this is just for debugging. It creates an error so we can watch crash handling
+#     sys.exit()
+#  #   raise RuntimeError("Fake error")
 
-kill_mode_button = Button(label="Kill")   # This is just a debugging tool to make sure the web app can handle crashes
-kill_mode_button.on_click(kill)
+# kill_mode_button = Button(label="Kill")   # This is just a debugging tool to make sure the web app can handle crashes
+# kill_mode_button.on_click(kill)
 
 
 mission_mode_button = RadioButtonGroup(
@@ -555,7 +555,7 @@ def get_thiel_analysis_plots(simname, realname):
 
 
     # set up layout
-    widgets = column(datatype,stats,stats2,kill_mode_button)
+    widgets = column(datatype,stats,stats2)
     mission_button = column(mission_mode_button)
     normalize_button = column(normalize_mode_button)
     sim_button = column(sim_reverse_button)
