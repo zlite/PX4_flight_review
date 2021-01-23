@@ -30,7 +30,7 @@ def sim2real_stats(data):
         stats = round(stats,3)
     return stats
 
-def sim2real_stats2(data):
+def sim2real_stats2(data):  # this is the Song variation of Thiel: https://drive.google.com/file/d/1XY8aZz89emFt-LAuUZ2pjC1GHwRARr9f/view
     numerator = 0
     denominator = 0
     simdata = data['sim']
