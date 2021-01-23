@@ -30,9 +30,7 @@ from config import *
 from colors import HTML_color_to_RGB
 from helper import *
 from leaflet import ulog_to_polyline
-from bokeh.models import CheckboxGroup
-from bokeh.models import RadioButtonGroup
-from bokeh.models.widgets import FileInput
+from bokeh.models import RadioButtonGroup, Button
 from bokeh.models.widgets import Paragraph
 
 import pandas as pd
@@ -82,6 +80,15 @@ real_label = Label()
 annotation_counter = 0
 mission_annotation_counter = 0
 config = [default_simname, default_realname, sim_metric, real_metric, simdescription, realdescription, 1, 1]  # this is just a placeholder in case you don't already have
+
+
+def kill():
+    # this is just for debugging. It creates an error so we can watch crash handling
+    sys.exit()
+ #   raise RuntimeError("Fake error")
+
+kill_mode_button = Button(label="Kill")   # This is just a debugging tool to make sure the web app can handle crashes
+kill_mode_button.on_click(kill)
 
 
 mission_mode_button = RadioButtonGroup(
@@ -429,14 +436,12 @@ def normalize():
     get_new_data = False
     update()
 
-
 def clear_boxes():
     global annotations, mission_annotations
     for i in range(mission_annotation_counter):
         mission_annotations[i].visible = False  # turn off the previous mission annotations
     for j in range(annotation_counter):
         annotations[j].visible = False  # turn off the previous other mode annotations
-
 
 def mission_mode():
     global mission_only, get_new_data
@@ -550,7 +555,7 @@ def get_thiel_analysis_plots(simname, realname):
 
 
     # set up layout
-    widgets = column(datatype,stats,stats2)
+    widgets = column(datatype,stats,stats2,kill_mode_button)
     mission_button = column(mission_mode_button)
     normalize_button = column(normalize_mode_button)
     sim_button = column(sim_reverse_button)
