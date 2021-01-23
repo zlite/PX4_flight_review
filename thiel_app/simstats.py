@@ -29,3 +29,22 @@ def sim2real_stats(data):
         stats = sum1/(sum2 + sum3)
         stats = round(stats,3)
     return stats
+
+def sim2real_stats2(data):
+    numerator = 0
+    denominator = 0
+    simdata = data['sim']
+    realdata = data['real']
+    simdata.dropna(inplace=True)  # delete empty rows
+    realdata.dropna(inplace=True)  
+    real = np.array(realdata)
+    sim = np.array(simdata)
+    length = min(len(real), len(sim))  # only compare over the overlapping range of the two datasets, which is the smallest of the two
+    for i in range(length-1):
+        numerator = numerator + ((real[i+1]-real[i])-(sim[i+1]-sim[i]))**2
+        denominator = denominator + (real[i+1] - real[i])**2
+    
+    numerator = math.sqrt(numerator)
+    denominator = math.sqrt(denominator)
+    total = round(numerator/denominator,3)
+    return total

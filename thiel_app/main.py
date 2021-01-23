@@ -110,6 +110,7 @@ explainer = Div(text="<b>Note:</b> the X/Y coordinate system is set relatively a
 
 stats = PreText(text='Thiel Coefficient', width=500)
 # datatype = Select(value='XY', options=DEFAULT_FIELDS)
+stats2 = PreText(text='Song Coefficient', width=500)
 
 
 # @lru_cache()
@@ -401,7 +402,10 @@ def update(selected=None):
 
     config = update_config()
     thiel = simstats.sim2real_stats(datalog)
+    song = simstats.sim2real_stats2(datalog)
+
     stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(thiel)
+    stats2.text = 'Song coefficient (1 = perfect): ' + str(song)
     save_settings(config)
 
 def normalize():
@@ -518,7 +522,7 @@ def get_thiel_analysis_plots(simname, realname):
 
     intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2> \
         <p> Load two PX4 datalogs, one a real flight and the other a simulation of that flight, \
-            and see how well they compare. We use the well-known <a href="https://www.vosesoftware.com/riskwiki/Thielinequalitycoefficient.php">Thiel Coefficient</a> to generate a correspondence score.""",width=800, height=100, align="center")
+            and see how well they compare. We use the well-known <a href="https://www.vosesoftware.com/riskwiki/Thielinequalitycoefficient.php">Thiel Coefficient</a> and <a href="https://drive.google.com/file/d/1XY8aZz89emFt-LAuUZ2pjC1GHwRARr9f/view">Song variation</a> of that to generate correspondence scores.""",width=800, height=100, align="center")
     choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
     links_text = Div(text="<table width='100%'><tr><td><h3>" + "</h3></td><td align='left'>" + additional_links+"</td></tr></table>")
     datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[]))
@@ -546,7 +550,7 @@ def get_thiel_analysis_plots(simname, realname):
 
 
     # set up layout
-    widgets = column(datatype,stats)
+    widgets = column(datatype,stats,stats2)
     mission_button = column(mission_mode_button)
     normalize_button = column(normalize_mode_button)
     sim_button = column(sim_reverse_button)
