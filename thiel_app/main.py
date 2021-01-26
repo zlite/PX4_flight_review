@@ -412,7 +412,7 @@ def update(selected=None):
     song = simstats.sim2real_stats2(datalog)
 
     stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(thiel)
-    stats2.text = 'Song coefficient (1 = perfect): ' + str(song)
+    stats2.text = 'Song coefficient (0 = perfect): ' + str(song)
     save_settings(config)
 
 def normalize():

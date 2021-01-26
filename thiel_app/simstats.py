@@ -2,6 +2,115 @@
 
 import numpy as np
 import math
+from sklearn.decomposition import PCA
+
+
+def tic(x_r, x_s):
+    """
+    Equation (1) (Thiel Inequality Coefficient) from paper
+    
+    :param x_r: reference output
+    :param x_s: simulation output
+    :return: the coefficient of TIC 
+    """
+    numerator = ((x_r - x_s)**2).sum()**(1/2)
+    denominator = ((x_r**2).sum()**(1/2) + (x_s**2).sum()**(1/2))
+    return numerator / denominator
+
+
+def rate_of_change(x, t_Δ=1):
+    """
+    :param x: a series
+    :param t_Δ: the intervals between each observation (series or constant)
+    :return: rate of change for x
+    """
+    return np.diff(x) / t_Δ
+
+
+def tic_improved(x_r, x_s):
+    """
+    Equation (2) from paper
+    
+    :param x_r: reference output
+    :param x_s: simulation output
+    :return: the IMPROVED coefficient of TIC 
+    """
+    xrss = (x_r**2).sum()**(1/2)
+    xsss = (x_s**2).sum()**(1/2)
+    if xrss == 0:
+        return xsss
+    else:
+        return ((x_r - x_s)**2).sum()**(1/2) / xrss
+    
+    
+def squashed_tic_improved(x_r, x_s, ξ):
+    """
+    Equation (3) from paper
+    
+    :param x_r: reference output
+    :param x_s: simulation output
+    :param ξ: squash control parameter
+    :return: the squashed IMPROVED coefficient of TIC 
+    """
+    return np.exp(-ξ * tic_improved(x_r, x_s))
+
+
+
+def make_matrix_A(x_r, simulations, ξ, Δ_t=1):
+    """
+    Equation (9) from paper
+    
+    :param x_r: reference output
+    :param simulations: simulation outputs
+    :param t_Δ: the intervals between each observation (series or constant)
+    :param ξ: squash control parameter
+    :return: the position/trend matrix 
+    """
+    A = []
+    for x_s in simulations:
+        a_i1 = squashed_tic_improved(x_r, x_s, ξ)
+        a_i2 = squashed_tic_improved(rate_of_change(x_r, Δ_t), rate_of_change(x_s, Δ_t), ξ)
+        A.append([a_i1, a_i2])
+        
+    return np.array(A)
+
+
+def mean_centered(A):
+    """
+    Equation (10) from paper.
+    
+    :param A: a matrix
+    :return: the matrix with columns mean-centered
+    """
+    return A / np.mean(A, axis=0)
+
+
+def make_matrix_S(x_r, simulations, ξ, Δ_t=1):
+    """
+    Equation (11) from paper
+    
+    :param x_r: reference output
+    :param simulations: simulation outputs
+    :param ξ: squash control parameter
+    :param t_Δ: the intervals between each observation (series or constant)
+    :return: the position/trend matrix 
+    """
+    return mean_centered(make_matrix_A(x_r, simulations, ξ, Δ_t))
+
+
+def compute_y(x_r, simulations, ξ, Δ_t=1):
+    """
+    Equation (18) from paper
+    
+    :param x_r: reference output
+    :param simulations: simulation outputs
+    :param ξ: squash control parameter
+    :param t_Δ: the intervals between each observation (series or constant)
+    :return: the y value for each simulation
+    """
+    S = make_matrix_S(x_r, simulations, ξ, Δ_t=1)
+    k = PCA(1).fit(S).components_[0]
+    return S @ k
 
 def sim2real_stats(data):
     simdata = data['sim']
