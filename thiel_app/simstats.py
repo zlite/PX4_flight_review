@@ -1,13 +1,12 @@
 # this is the module that does the sim-to-real comparison stats. Feel free to write your own!
 
 import numpy as np
-import math
 from sklearn.decomposition import PCA
 
 
 def tic(x_r, x_s):
     """
-    Equation (1) (Thiel Inequality Coefficient) from paper
+    Equation (1) from paper
     
     :param x_r: reference output
     :param x_s: simulation output
@@ -43,7 +42,7 @@ def tic_improved(x_r, x_s):
         return ((x_r - x_s)**2).sum()**(1/2) / xrss
     
     
-def squashed_tic_improved(x_r, x_s, ξ):
+def squashed_tic_improved(x_r, x_s, ξ, λ=1):
     """
     Equation (3) from paper
     
@@ -52,11 +51,77 @@ def squashed_tic_improved(x_r, x_s, ξ):
     :param ξ: squash control parameter
     :return: the squashed IMPROVED coefficient of TIC 
     """
-    return np.exp(-ξ * tic_improved(x_r, x_s))
+    return np.exp(-ξ * λ * tic_improved(x_r, x_s))
 
 
+def squashed(arr, ξ, λ=1):
+    """
+    Equation (3) from paper
+    
+    :param x_r: reference output
+    :param x_s: simulation output
+    :param ξ: squash control parameter
+    :return: the squashed IMPROVED coefficient of TIC 
+    """
+    return np.exp(-ξ * λ * arr)
 
-def make_matrix_A(x_r, simulations, ξ, Δ_t=1):
+
+def equation_8(x_r, x_s, Δ_t=1):
+    """
+    Equation (8) from paper
+    
+    :param x_r: reference output
+    :param x_s: simulation output
+    :param t_Δ: the intervals between each observation (series or constant)
+    :return: the IMPROVED coefficient of TIC for trends 
+    """
+    return tic_improved(rate_of_change(x_r, Δ_t), rate_of_change(x_s, Δ_t))
+
+
+def position_metric(x_r, x_s, ξ):
+    """
+    Equation (3) from paper
+    
+    :param x_r: reference output
+    :param x_s: simulation output
+    :param ξ: squash control parameter
+    :param t_Δ: the intervals between each observation (series or constant)
+    :return: the squashed IMPROVED coefficient of TIC for trend
+    """
+    return squashed(tic_improved(x_r, x_s), ξ, 1)
+
+
+def trend_metric(x_r, x_s, ξ, Δ_t=1, λ=1):
+    """
+    Equation (6) from paper
+    
+    :param x_r: reference output
+    :param x_s: simulation output
+    :param ξ: squash control parameter
+    :param t_Δ: the intervals between each observation (series or constant)
+    :return: the squashed IMPROVED coefficient of TIC for trend
+    """
+    return squashed(equation_8(x_r, x_s, Δ_t), ξ, λ)
+
+
+def mixed_metric(w_trend, x_r, x_s, ξ, Δ_t=1, λ=1):
+    """
+    Mixes Equation (3) and (6)
+    
+    :param w_trend: amount of weight to put on trend [0, 1]
+    :param x_r: reference output
+    :param x_s: simulation output
+    :param ξ: squash control parameter
+    :param t_Δ: the intervals between each observation (series or constant)
+    :return: the squashed IMPROVED coefficient of TIC for trend
+    """
+    assert 0 <= w_trend <= 1, "weight not in [0, 1]"
+    d = position_metric(x_r, x_s, ξ)
+    t = trend_metric(x_r, x_s, ξ, Δ_t, λ)
+    return w_trend*d + (1 - w_trend)*t
+    
+
+def make_matrix_A(x_r, simulations, ξ, Δ_t=1, λ=1):
     """
     Equation (9) from paper
     
@@ -68,8 +133,8 @@ def make_matrix_A(x_r, simulations, ξ, Δ_t=1):
     """
     A = []
     for x_s in simulations:
-        a_i1 = squashed_tic_improved(x_r, x_s, ξ)
-        a_i2 = squashed_tic_improved(rate_of_change(x_r, Δ_t), rate_of_change(x_s, Δ_t), ξ)
+        a_i1 = position_metric(x_r, x_s, ξ)
+        a_i2 = trend_metric(x_r, x_s, ξ, Δ_t, λ)
         A.append([a_i1, a_i2])
         
     return np.array(A)
@@ -85,7 +150,7 @@ def mean_centered(A):
     return A / np.mean(A, axis=0)
 
 
-def make_matrix_S(x_r, simulations, ξ, Δ_t=1):
+def make_matrix_S(x_r, simulations, ξ, Δ_t=1, λ=1):
     """
     Equation (11) from paper
     
@@ -95,10 +160,19 @@ def make_matrix_S(x_r, simulations, ξ, Δ_t=1):
     :param t_Δ: the intervals between each observation (series or constant)
     :return: the position/trend matrix 
     """
-    return mean_centered(make_matrix_A(x_r, simulations, ξ, Δ_t))
+    return mean_centered(make_matrix_A(x_r, simulations, ξ, Δ_t, λ))
 
 
-def compute_y(x_r, simulations, ξ, Δ_t=1):
+def corrected_components(x):
+    """
+    :return: the components x, negated if both components are negative
+    """
+    if x[0] < 0 and x[1] < 0:
+        return -x
+    return x
+
+
+def compute_y(x_r, simulations, ξ, Δ_t=1, λ=1):
     """
     Equation (18) from paper
     
@@ -108,9 +182,10 @@ def compute_y(x_r, simulations, ξ, Δ_t=1):
     :param t_Δ: the intervals between each observation (series or constant)
     :return: the y value for each simulation
     """
-    S = make_matrix_S(x_r, simulations, ξ, Δ_t=1)
-    k = PCA(1).fit(S).components_[0]
+    S = make_matrix_S(x_r, simulations, ξ, Δ_t, λ)
+    k = corrected_components(PCA(1).fit(S).components_[0])
     return S @ k
+
 
 def sim2real_stats(data):
     simdata = data['sim']
