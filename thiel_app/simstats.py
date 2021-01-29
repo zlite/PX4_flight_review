@@ -1,6 +1,7 @@
 # this is the module that does the sim-to-real comparison stats. Feel free to write your own!
 
 import numpy as np
+import math
 from sklearn.decomposition import PCA
 
 
@@ -75,7 +76,9 @@ def equation_8(x_r, x_s, Δ_t=1):
     :param t_Δ: the intervals between each observation (series or constant)
     :return: the IMPROVED coefficient of TIC for trends 
     """
-    return tic_improved(rate_of_change(x_r, Δ_t), rate_of_change(x_s, Δ_t))
+    real = np.array(x_r)
+    sim = np.array(x_s)
+    return tic_improved(rate_of_change(real, Δ_t), rate_of_change(sim, Δ_t))
 
 
 def position_metric(x_r, x_s, ξ):

@@ -410,6 +410,8 @@ def update(selected=None):
     config = update_config()
     thiel = simstats.sim2real_stats(datalog)
     song = simstats.sim2real_stats2(datalog)
+    trend = simstats.equation_8(datalog[['sim']],datalog[['real']])
+    print("trend= ", trend)
 
     stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(thiel)
     stats2.text = 'Song coefficient (0 = perfect): ' + str(song)
