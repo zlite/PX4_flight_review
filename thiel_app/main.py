@@ -54,6 +54,8 @@ sim_polarity = 1  # determines if we should reverse the Y data
 real_polarity = 1
 simx_offset = 0
 realx_offset = 0
+realnorm = 0
+simnorm = 0 
 read_file = True
 get_new_data = True
 reverse_sim_data = False
@@ -408,14 +410,27 @@ def update(selected=None):
     plot_flight_modes(real_flight_mode_changes, 'real')
 
     config = update_config()
+    stats.text, stats2.text = get_stats(datalog)
+    save_settings(config)
+
+def get_stats(datalog):
     thiel = simstats.sim2real_stats(datalog)
     song = simstats.sim2real_stats2(datalog)
-    trend = simstats.equation_8(datalog[['sim']],datalog[['real']])
+
+    sim = datalog[['sim']].to_numpy()
+    real = datalog[['real']].to_numpy()
+    sim = sim[~np.isnan(sim)]   # eliminate any NaNs
+    real = real[~np.isnan(real)]
+    min_size = min(sim.size, real.size) # shrink the longer one so it's the same size as the smaller one
+    print("min size =", min_size)
+    real = real[:min_size]
+    sim = sim[:min_size]
+    trend = simstats.equation_8(sim,real)
     print("trend= ", trend)
 
-    stats.text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(thiel)
-    stats2.text = 'Song coefficient (0 = perfect): ' + str(song)
-    save_settings(config)
+    thiel_text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(thiel)
+    song_text = 'Song coefficient (0 = perfect): ' + str(song)
+    return thiel_text, song_text
 
 def normalize():
     global datalog, realnorm, simnorm, get_new_data, norm
