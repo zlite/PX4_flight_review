@@ -24,7 +24,8 @@ def rate_of_change(x, t_Δ=1):
     :param t_Δ: the intervals between each observation (series or constant)
     :return: rate of change for x
     """
-    return np.diff(x) / t_Δ
+    diffs = np.diff(x) / t_Δ
+    return diffs
 
 
 def tic_improved(x_r, x_s):
