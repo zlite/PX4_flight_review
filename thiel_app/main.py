@@ -34,6 +34,7 @@ from bokeh.models import RadioButtonGroup, Button
 from bokeh.models.widgets import Paragraph
 
 import pandas as pd
+pd.options.mode.chained_assignment = None  # default='warn'
 
 from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource, PreText, Select
@@ -415,7 +416,7 @@ def update(selected=None):
     datalog = pd.concat([datalog, pd_trend], axis=1)
 
     position = get_displacement(datalog)
-    position = position/10  # scaled
+    position = position/5  # scaled
     pd_position = pd.DataFrame(position, columns = ['position'])
     datalog = pd.concat([datalog, pd_position], axis=1)
 

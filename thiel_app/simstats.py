@@ -189,10 +189,10 @@ def compute_y(x_r, simulations, ξ, Δ_t=1, λ=1):
     return S @ k
 
 def sim2real_stats(data):
-    simdata = data['sim']
-    realdata = data['real']
-    simdata.dropna()  # delete empty rows
-    realdata.dropna()  
+    simdata = data[['sim']]
+    realdata = data[['real']]
+    simdata.dropna(inplace=True)  # delete empty rows
+    realdata.dropna(inplace=True)  
     real = np.array(realdata)
     sim = np.array(simdata)
     stats = 0
@@ -218,10 +218,10 @@ def sim2real_stats(data):
 def sim2real_stats2(data):  # this is the Song variation of Thiel: https://drive.google.com/file/d/1XY8aZz89emFt-LAuUZ2pjC1GHwRARr9f/view
     numerator = 0
     denominator = 0
-    simdata = data['sim']
-    realdata = data['real']
-    simdata.dropna()  # delete empty rows
-    realdata.dropna()  
+    simdata = data[['sim']]
+    realdata = data[['real']]
+    simdata.dropna(inplace=True)  # delete empty rows
+    realdata.dropna(inplace=True)  
     real = np.array(realdata)
     sim = np.array(simdata)
     length = min(len(real), len(sim))  # only compare over the overlapping range of the two datasets, which is the smallest of the two
