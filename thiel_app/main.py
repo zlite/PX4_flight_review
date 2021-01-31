@@ -405,9 +405,18 @@ def update(selected=None):
         datalog['real'] = real_polarity * original_data['real']
         reverse_real_data = False  
 
+#    range = datalog[['real']].max(numeric_only = True) - datalog[['real']].min(numeric_only = True)
+    range = 1
+    if ts1.y_range.end != None:
+        range = ts1.y_range.end - ts1.y_range.start
     trend = get_trend(datalog)
+    trend = trend * int(range/20)  # expand the trend line to at least 5% of of the overall range
     pd_trend = pd.DataFrame(trend, columns = ['trend'])
     datalog = pd.concat([datalog, pd_trend], axis=1)
+
+    position = get_displacement(datalog)
+    pd_position = pd.DataFrame(position, columns = ['position'])
+    datalog = pd.concat([datalog, pd_position], axis=1)
 
     datasource.data = datalog
     plot_flight_modes(sim_flight_mode_changes, 'sim')
@@ -417,8 +426,7 @@ def update(selected=None):
     stats.text, stats2.text = get_stats(datalog)
     save_settings(config)
 
-
-def get_trend(datalog):
+def prep_for_stats(datalog):
     sim = datalog[['sim']].to_numpy()
     real = datalog[['real']].to_numpy()
     sim = sim[~np.isnan(sim)]   # eliminate any NaNs
@@ -426,6 +434,14 @@ def get_trend(datalog):
     min_size = min(sim.size, real.size) # shrink the longer one so it's the same size as the smaller one
     real = real[:min_size]
     sim = sim[:min_size]
+    return real, sim
+
+def get_displacement(datalog):
+    real, sim = prep_for_stats(datalog)
+    return sim - real
+
+def get_trend(datalog):
+    real, sim = prep_for_stats(datalog)
     sim_trend = simstats.rate_of_change(sim)
     real_trend = simstats.rate_of_change(real)
     trend_diff = sim_trend - real_trend
@@ -435,18 +451,12 @@ def get_trend(datalog):
 def get_stats(datalog):
     thiel = simstats.sim2real_stats(datalog)
     song = simstats.sim2real_stats2(datalog)
+    real, sim = prep_for_stats(datalog)  # this just cleans up the data so it wil work with the stats libraries
 
-    sim = datalog[['sim']].to_numpy()
-    real = datalog[['real']].to_numpy()
-    sim = sim[~np.isnan(sim)]   # eliminate any NaNs
-    real = real[~np.isnan(real)]
-    min_size = min(sim.size, real.size) # shrink the longer one so it's the same size as the smaller one
-    print("min size =", min_size)
-    real = real[:min_size]
-    sim = sim[:min_size]
-
-    trend = simstats.equation_8(sim,real)
+    trend = simstats.equation_8(real,sim)  # find trend correlate
     print("trend= ", trend)
+    position = simstats.position_metric(real, sim, 1) # find position correlate
+    print("position =", position)
 
     thiel_text = 'Thiel coefficient (1 = no correlation, 0 = perfect): ' + str(thiel)
     song_text = 'Song coefficient (0 = perfect): ' + str(song)
@@ -567,7 +577,7 @@ def get_thiel_analysis_plots(simname, realname):
             and see how well they compare. We use the well-known <a href="https://www.vosesoftware.com/riskwiki/Thielinequalitycoefficient.php">Thiel Coefficient</a> and <a href="https://drive.google.com/file/d/1XY8aZz89emFt-LAuUZ2pjC1GHwRARr9f/view">Song variation</a> of that to generate correspondence scores.""",width=800, height=100, align="center")
     choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
     links_text = Div(text="<table width='100%'><tr><td><h3>" + "</h3></td><td align='left'>" + additional_links+"</td></tr></table>")
-    datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[],trend=[]))
+    datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[],trend=[],position=[]))
     datasource.data = datalog
 
     tools = 'xpan,wheel_zoom,reset'
@@ -575,9 +585,10 @@ def get_thiel_analysis_plots(simname, realname):
  
   #  ts1.add_layout(Legend(), 'right')    # if you want the legend outside of the plot
     print("real description", realdescription)
-    ts1.line('time','sim', source=datasource, line_width=2, color="orange", legend_label="Simulated data: "+ simdescription)
-    ts1.line('time','real', source=datasource, line_width=2, color="blue", legend_label="Real data: " + realdescription)
-    ts1.line('time','trend', source=datasource, line_width=2, color="green", legend_label="Difference in trends")
+    ts1.line('time','sim', source=datasource, line_width=3, color="orange", legend_label="Simulated data: "+ simdescription)
+    ts1.line('time','real', source=datasource, line_width=3, color="blue", legend_label="Real data: " + realdescription)
+    ts1.line('time','trend', source=datasource, line_width=1, color="green", legend_label="Difference in trend (scaled)")
+    ts1.line('time','position', source=datasource, line_width=1, color="red", line_dash = 'solid', legend_label="Difference in position")
     ts1.legend.background_fill_alpha = 0.7   # make the background of the legend more transparent
 
     ts1.add_layout(Title(text="Time (seconds)", align="center"), "below")

@@ -188,12 +188,11 @@ def compute_y(x_r, simulations, ξ, Δ_t=1, λ=1):
     k = corrected_components(PCA(1).fit(S).components_[0])
     return S @ k
 
-
 def sim2real_stats(data):
     simdata = data['sim']
     realdata = data['real']
-    simdata.dropna(inplace=True)  # delete empty rows
-    realdata.dropna(inplace=True)  
+    simdata.dropna()  # delete empty rows
+    realdata.dropna()  
     real = np.array(realdata)
     sim = np.array(simdata)
     stats = 0
@@ -221,8 +220,8 @@ def sim2real_stats2(data):  # this is the Song variation of Thiel: https://drive
     denominator = 0
     simdata = data['sim']
     realdata = data['real']
-    simdata.dropna(inplace=True)  # delete empty rows
-    realdata.dropna(inplace=True)  
+    simdata.dropna()  # delete empty rows
+    realdata.dropna()  
     real = np.array(realdata)
     sim = np.array(simdata)
     length = min(len(real), len(sim))  # only compare over the overlapping range of the two datasets, which is the smallest of the two
