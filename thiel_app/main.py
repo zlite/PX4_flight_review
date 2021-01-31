@@ -410,11 +410,12 @@ def update(selected=None):
     if ts1.y_range.end != None:
         range = ts1.y_range.end - ts1.y_range.start
     trend = get_trend(datalog)
-    trend = trend * int(range/20)  # expand the trend line to at least 5% of of the overall range
+    trend = trend * int(range/10)  # expand the trend line to at least 5% of of the overall range
     pd_trend = pd.DataFrame(trend, columns = ['trend'])
     datalog = pd.concat([datalog, pd_trend], axis=1)
 
     position = get_displacement(datalog)
+    position = position/10  # scaled
     pd_position = pd.DataFrame(position, columns = ['position'])
     datalog = pd.concat([datalog, pd_position], axis=1)
 
@@ -588,7 +589,7 @@ def get_thiel_analysis_plots(simname, realname):
     ts1.line('time','sim', source=datasource, line_width=3, color="orange", legend_label="Simulated data: "+ simdescription)
     ts1.line('time','real', source=datasource, line_width=3, color="blue", legend_label="Real data: " + realdescription)
     ts1.line('time','trend', source=datasource, line_width=1, color="green", legend_label="Difference in trend (scaled)")
-    ts1.line('time','position', source=datasource, line_width=1, color="red", line_dash = 'solid', legend_label="Difference in position")
+    ts1.line('time','position', source=datasource, line_width=1, color="red", line_dash = 'solid', legend_label="Difference in position (scaled)")
     ts1.legend.background_fill_alpha = 0.7   # make the background of the legend more transparent
 
     ts1.add_layout(Title(text="Time (seconds)", align="center"), "below")
