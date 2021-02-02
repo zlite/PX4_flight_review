@@ -575,7 +575,7 @@ def get_thiel_analysis_plots(simname, realname):
 
     intro_text = Div(text="""<H2>Sim/Real Thiel Coefficient Calculator</H2> \
         <p> Load two PX4 datalogs, one a real flight and the other a simulation of that flight, \
-            and see how well they compare. We use the well-known <a href="https://www.vosesoftware.com/riskwiki/Thielinequalitycoefficient.php">Thiel Coefficient</a> and <a href="https://drive.google.com/file/d/1XY8aZz89emFt-LAuUZ2pjC1GHwRARr9f/view">Song variation</a> of that to generate correspondence scores.""",width=800, height=100, align="center")
+            and see how well they compare. We use the well-known <a href="https://www.vosesoftware.com/riskwiki/Thielinequalitycoefficient.php">Thiel Coefficient</a> and <a href="https://drive.google.com/file/d/1XY8aZz89emFt-LAuUZ2pjC1GHwRARr9f/view">Song variation</a> of that to generate correspondence scores. Our Jupyter Notebook that demonstrates and explains the Song methodology is <a href="https://github.com/zlite/PX4_flight_review/blob/master/thiel_app/clean_replication.ipynb">here</a>""",width=800, height=120, align="center")
     choose_field_text = Paragraph(text="Choose a data field to compare:",width=500, height=15)
     links_text = Div(text="<table width='100%'><tr><td><h3>" + "</h3></td><td align='left'>" + additional_links+"</td></tr></table>")
     datasource = ColumnDataSource(data = dict(time=[],sim=[],real=[],trend=[],position=[]))
