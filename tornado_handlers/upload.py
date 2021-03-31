@@ -83,6 +83,7 @@ class UploadHandler(TornadoRequestHandlerBase):
     def initialize(self):
         """ initialize the instance """
         self.multipart_streamer = None
+        self.csv_type = False
 
     def prepare(self):
         """ called before a new request """
@@ -184,7 +185,12 @@ class UploadHandler(TornadoRequestHandlerBase):
                             'Invalid File. This seems to be a px4log file. '
                             'Upload it to <a href="http://logs.uaventure.com" '
                             'target="_blank">logs.uaventure.com</a>.')
-                    raise CustomHTTPError(400, 'Invalid File')
+
+                    if upload_file_name[-4:].lower() == '.csv':
+                        self.csv_type = True
+                        print("CSV file found")
+                    else:
+                        raise CustomHTTPError(400, 'Invalid File')
 
                 print('Moving uploaded file to', new_file_name)
                 file_obj.move(new_file_name)
@@ -199,10 +205,17 @@ class UploadHandler(TornadoRequestHandlerBase):
                 # Load the ulog file but only if not uploaded via CI.
                 # Then we open the DB connection.
                 ulog = None
-                if source != 'CI':
+                if (source != 'CI') and (not self.csv_type):
                     ulog_file_name = get_log_filename(log_id)
                     ulog = load_ulog_file(ulog_file_name)
+                if (source != 'CI') and (self.csv_type):
 
+
+                    csvlog =  FIGURE OUT WHAT TO DO HERE
+
+
+
+                    csv_file_name = get_log_filename(log_id)
 
                 # put additional data into a DB
                 con = sqlite3.connect(get_db_filename())
@@ -221,6 +234,9 @@ class UploadHandler(TornadoRequestHandlerBase):
                 if ulog is not None:
                     vehicle_data = update_vehicle_db_entry(cur, ulog, log_id, vehicle_name)
                     vehicle_name = vehicle_data.name
+
+                if csv_type:
+
 
                 con.commit()
 
